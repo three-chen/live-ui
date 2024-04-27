@@ -19,19 +19,16 @@ export default {
         const init = async () => {
             await MediaFactory.init()
             ready.value = true
-            // await MediaFactory.listDevices((logEvent: LogEvent) => {
-            //     console.log(logEvent)
-            // })
         }
 
         init()
 
         const captureScreen = async () => {
-            await MediaFactory.desktopStream()
+            await MediaFactory.desktopStreamSpawn()
         }
 
         const openCamera = async () => {
-            await MediaFactory.cameraStream()
+            await MediaFactory.cameraStreamSpawn()
         }
 
         return {

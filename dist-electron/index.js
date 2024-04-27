@@ -7,6 +7,30 @@ var __publicField = (obj, key, value) => {
 };
 const electron = require("electron");
 const path = require("path");
+const child_process = require("child_process");
+const commandIPCListen = () => {
+  electron.ipcMain.on("ffmpegCommandExec", (event, arg) => {
+    console.log(arg);
+    const ChildProcess = child_process.exec(arg);
+    setTimeout(() => {
+      console.log("Closing ffmpeg process...");
+      ChildProcess.kill("SIGINT");
+    }, 3e4);
+    console.log("ChildProcess", ChildProcess);
+  });
+  electron.ipcMain.on("ffmpegCommandSpawn", (event, arg) => {
+    const { command, args } = JSON.parse(arg);
+    console.log(command, args);
+    const ChildProcess = child_process.spawn(command, args, {
+      windowsVerbatimArguments: true
+    });
+    setTimeout(() => {
+      console.log("Closing ffmpeg process...");
+      ChildProcess.kill("SIGINT");
+    }, 3e4);
+    console.log("ChildProcess", ChildProcess);
+  });
+};
 const windowsCfg = {
   id: null,
   //唯一id
@@ -218,6 +242,7 @@ class Window {
       }
     });
     electron.ipcMain.on("window-new", (event, args) => this.createWindows(args));
+    commandIPCListen();
   }
 }
 const isDevelopment = process.env.NODE_ENV !== "production";

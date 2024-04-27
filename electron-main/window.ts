@@ -1,5 +1,7 @@
 import { app, BrowserWindow, ipcMain, Menu, Tray } from 'electron'
 import path from 'path'
+import { commandIPCListen } from './commandIPCListen'
+
 interface IWindowsCfg {
   id: number | null
   title: string
@@ -272,5 +274,6 @@ export class Window {
 
     // 创建窗口
     ipcMain.on('window-new', (event: Event, args) => this.createWindows(args))
+    commandIPCListen()
   }
 }
