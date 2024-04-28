@@ -1,13 +1,13 @@
 <script setup>
-import { useRTCStore } from '@/stores/rtc';
-import { onMounted, ref } from 'vue';
+// import { useRTCStore } from '@/stores/rtc';
+// import { onMounted, ref } from 'vue';
 
-const videoMedia = ref(null);
-const rtcStroe = useRTCStore();
+// const videoMedia = ref(null);
+// const rtcStroe = useRTCStore();
 
-onMounted(() => {
-    rtcStroe.setMediaBoxElement(videoMedia.value);
-})
+// onMounted(() => {
+//     rtcStroe.setMediaBoxElement(videoMedia.value);
+// })
 
 </script>
 

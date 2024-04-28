@@ -166,12 +166,17 @@ export class Window {
     // 打开网址（加载页面）
     let winURL
     if (app.isPackaged) {
-      winURL = args.route ? `app://./index.html${args.route}` : `app://./index.html`
+      winURL = args.route ? path.join(__dirname, `../../dist/index.html${args.route}`) : path.join(__dirname, `../../dist/index.html`)
     } else {
       winURL = args.route ? `${process.env['VITE_DEV_SERVER_URL']}${args.route}?winId=${args.id}` : `${process.env['VITE_DEV_SERVER_URL']}?winId=${args.id}`
     }
     console.log('new window url:', winURL)
-    win.loadURL(winURL)
+    console.log('env', process.env.NODE_ENV)
+    if (process.env.NODE_ENV === 'production') {
+      win.loadURL(path.join(__dirname, '../dist/index.html'))
+    } else {
+      win.loadURL(winURL)
+    }
 
     win.once('ready-to-show', () => {
       win.show()
@@ -215,7 +220,7 @@ export class Window {
   // 开启监听
   listen() {
     // 固定
-    ipcMain.on('pinUp', (event: Event, winId) => {
+    ipcMain.on('pinUp', (event, winId) => {
       event.preventDefault()
       if (winId && (this.main as BrowserWindow).id == winId) {
         let win: BrowserWindow = this.getWindow(Number((this.main as BrowserWindow).id))
@@ -250,7 +255,7 @@ export class Window {
     })
 
     // 最小化
-    ipcMain.on('mini', (event: Event, winId) => {
+    ipcMain.on('mini', (event, winId) => {
       // console.log('minimize window id', winId)
       if (winId) {
         this.getWindow(Number(winId)).minimize()
@@ -273,7 +278,7 @@ export class Window {
     })
 
     // 创建窗口
-    ipcMain.on('window-new', (event: Event, args) => this.createWindows(args))
+    ipcMain.on('window-new', (event, args) => this.createWindows(args))
     commandIPCListen()
   }
 }

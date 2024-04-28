@@ -1,27 +1,27 @@
 <script setup lang="ts">
-import { useRTCStore } from '@/stores/rtc';
-import { onMounted, ref } from 'vue';
+// import { useRTCStore } from '@/stores/rtc';
+// import { onMounted, ref } from 'vue';
 
-import RichText from '@/modules/richText/index';
+// import RichText from '@/modules/richText/index';
 
-const chatBox = ref(null);
-const richTextBox = ref(null);
-const rtcStroe = useRTCStore();
+// const chatBox = ref(null);
+// const richTextBox = ref(null);
+// const rtcStroe = useRTCStore();
 
-const richText = new RichText();
+// const richText = new RichText();
 
-onMounted(() => {
-    rtcStroe.setChatBoxElement(chatBox.value);
-    richText.mount(richTextBox.value!);
+// onMounted(() => {
+//     rtcStroe.setChatBoxElement(chatBox.value);
+//     richText.mount(richTextBox.value!);
 
-})
+// })
 
 async function sendMessage() {
-    const message = await richText.getHTML();
-    const liveRTC = rtcStroe.liveRTC;
+    // const message = await richText.getHTML();
+    // const liveRTC = rtcStroe.liveRTC;
 
-    liveRTC!.sendMessage(message);
-    richText.clear();
+    // liveRTC!.sendMessage(message);
+    // richText.clear();
 
 }
 </script>
