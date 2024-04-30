@@ -1,1 +1,318 @@
-"use strict";var p=Object.defineProperty;var m=(t,e,i)=>e in t?p(t,e,{enumerable:!0,configurable:!0,writable:!0,value:i}):t[e]=i;var d=(t,e,i)=>(m(t,typeof e!="symbol"?e+"":e,i),i);const n=require("electron"),r=require("path"),c=require("child_process"),h=()=>{n.ipcMain.on("ffmpegCommandExec",(t,e)=>{console.log(e);const i=c.exec(e);setTimeout(()=>{console.log("Closing ffmpeg process..."),i.kill("SIGINT")},3e4),console.log("ChildProcess",i)}),n.ipcMain.on("ffmpegCommandSpawn",(t,e)=>{const{command:i,args:o}=JSON.parse(e);console.log(i,o);const s=c.spawn(i,o,{windowsVerbatimArguments:!0});setTimeout(()=>{console.log("Closing ffmpeg process..."),s.kill("SIGINT")},3e4),console.log("ChildProcess",s)})},g={id:null,title:"",width:null,height:null,minWidth:null,minHeight:null,route:"",resizable:!0,maximize:!1,backgroundColor:"#eee",data:null,isMultiWindow:!1,isMainWin:!1,parentId:null,modal:!1};class w{constructor(){d(this,"main");d(this,"group");d(this,"tray");this.main=null,this.group={},this.tray=null}winOpts(e=[]){return{width:e[0],height:e[1],backgroundColor:"#f7f8fc",autoHideMenuBar:!1,resizable:!0,minimizable:!0,maximizable:!0,frame:!0,show:!1,minWidth:0,minHeight:0,modal:!0,webPreferences:{contextIsolation:!1,nodeIntegration:!0,webSecurity:!1,preload:r.join(__dirname,"../electron-preload/index.js")}}}getWindow(e){return n.BrowserWindow.fromId(e)}createWindows(e){console.log("------------creating window...");let i=Object.assign({},g,e);for(let a in this.group)if(this.getWindow(Number(a))&&this.group[a].route===i.route&&!this.group[a].isMultiWindow){this.getWindow(Number(a)).focus();return}let o=this.winOpts([i.width||1080,i.height||720]);i.parentId?o.parent=this.getWindow(i.parentId):this.main&&console.log(666),o.modal=i.modal,o.resizable=i.resizable,i.backgroundColor&&(o.backgroundColor=i.backgroundColor),i.minWidth&&(o.minWidth=i.minWidth),i.minHeight&&(o.minHeight=i.minHeight);let s=new n.BrowserWindow(o);console.log("window id: "+s),this.group[s.id]={route:i.route,isMultiWindow:i.isMultiWindow},console.log("this.group",this.group),i.maximize&&i.resizable&&s.maximize(),i.isMainWin&&(this.main&&(delete this.group[this.main.id],this.main.close()),this.main=s),i.id=s.id,s.on("close",()=>s.setOpacity(0));let l;n.app.isPackaged?l=i.route?r.join(__dirname,`../../dist/index.html${i.route}`):r.join(__dirname,"../../dist/index.html"):l=i.route?`${process.env.VITE_DEV_SERVER_URL}${i.route}?winId=${i.id}`:`${process.env.VITE_DEV_SERVER_URL}?winId=${i.id}`,console.log("new window url:",l),console.log("env",process.env.NODE_ENV),process.env.NODE_ENV==="production"?s.loadURL(r.join(__dirname,"../dist/index.html")):s.loadURL(l),s.once("ready-to-show",()=>{s.show()})}createTray(){const e=n.Menu.buildFromTemplate([{label:"注销",click:()=>{}},{type:"separator"},{label:"退出",role:"quit"}]);this.tray=new n.Tray(r.join(__dirname,"../favicon.ico")),this.tray.on("click",()=>{for(let i in this.group)this.group[i]&&this.getWindow(Number(i)).show()}),this.tray.on("right-click",()=>{var i;(i=this.tray)==null||i.popUpContextMenu(e)}),this.tray.setToolTip("小猪课堂")}listen(){n.ipcMain.on("pinUp",(e,i)=>{if(e.preventDefault(),i&&this.main.id==i){let o=this.getWindow(Number(this.main.id));o.isAlwaysOnTop()?o.setAlwaysOnTop(!1):o.setAlwaysOnTop(!0)}}),n.ipcMain.on("window-hide",(e,i)=>{if(i)this.getWindow(Number(i)).hide();else for(let o in this.group)this.group[o]&&this.getWindow(Number(o)).hide()}),n.ipcMain.on("window-show",(e,i)=>{if(i)this.getWindow(Number(i)).show();else for(let o in this.group)this.group[o]&&this.getWindow(Number(o)).show()}),n.ipcMain.on("mini",(e,i)=>{if(i)this.getWindow(Number(i)).minimize();else for(let o in this.group)this.group[o]&&this.getWindow(Number(o)).minimize()}),n.ipcMain.on("window-max",(e,i)=>{if(i)this.getWindow(Number(i)).maximize();else for(let o in this.group)this.group[o]&&this.getWindow(Number(o)).maximize()}),n.ipcMain.on("window-new",(e,i)=>this.createWindows(i)),h()}}const f=process.env.NODE_ENV!=="production";async function u(){let t=new w;t.listen(),t.createWindows({isMainWin:!0}),t.createTray()}n.app.on("window-all-closed",()=>{process.platform!=="darwin"&&n.app.quit()});n.app.on("activate",()=>{n.BrowserWindow.getAllWindows().length===0&&u()});n.app.on("ready",async()=>{u()});f&&(process.platform==="win32"?process.on("message",t=>{t==="graceful-exit"&&(console.log("graceful-exit"),n.app.quit())}):process.on("SIGTERM",()=>{n.app.quit()}));
+"use strict";
+var __defProp = Object.defineProperty;
+var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+var __publicField = (obj, key, value) => {
+  __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
+  return value;
+};
+const electron = require("electron");
+const path = require("path");
+const child_process = require("child_process");
+var EncodeProtocolEnum = /* @__PURE__ */ ((EncodeProtocolEnum2) => {
+  EncodeProtocolEnum2["RTMP"] = "RTMP";
+  EncodeProtocolEnum2["WEBRTC"] = "WEBRTC";
+  EncodeProtocolEnum2["SRT"] = "SRT";
+  return EncodeProtocolEnum2;
+})(EncodeProtocolEnum || {});
+let mainWindow = null;
+const commandIPCListen = (mainW) => {
+  mainWindow = mainW;
+  electron.ipcMain.on("ffmpegCommandExec", (event, arg) => {
+    console.log(arg);
+    const ChildProcess = child_process.exec(arg, (error, stdout, stderr) => {
+      if (error) {
+        console.error(`exec error: ${error}`);
+        return;
+      }
+      console.log(`stdout: ${stdout}`);
+      console.log(`stderr: ${stderr}`);
+    });
+    console.log("ChildProcess", ChildProcess);
+  });
+  electron.ipcMain.on("ffmpegCommandSpawn", (event, arg) => {
+    const { command, args } = JSON.parse(arg);
+    console.log(command, args);
+    const ChildProcess = child_process.spawn(command, args, {
+      windowsVerbatimArguments: true
+    });
+    setTimeout(() => {
+      console.log("Closing ffmpeg process...");
+      ChildProcess.kill("SIGINT");
+    }, 3e4);
+    console.log("ChildProcess", ChildProcess);
+  });
+  electron.ipcMain.on("main-ffmpeg-protocols", (event, arg) => {
+    child_process.exec(arg, (error, stdout, stderr) => {
+      if (error) {
+        console.error(`exec error: ${error}`);
+        return;
+      }
+      console.log("stdout:", stdout);
+      const inputProtocolsRegex = /Input:\r?\n((?:\s{2}\w+\r?\n)+)/;
+      const inputProtocolsMatch = stdout.match(inputProtocolsRegex);
+      if (inputProtocolsMatch && inputProtocolsMatch[1]) {
+        const inputProtocols = inputProtocolsMatch[1].trim().split("\n").map((protocol) => protocol.trim());
+        const supports = [EncodeProtocolEnum.RTMP, EncodeProtocolEnum.SRT, EncodeProtocolEnum.WEBRTC];
+        let finalProtocols = inputProtocols.filter((protocol) => supports.includes(protocol.toUpperCase()));
+        finalProtocols = finalProtocols.map((protocol) => protocol.toUpperCase());
+        mainWindow == null ? void 0 : mainWindow.webContents.send("main-ffmpeg-protocols-response", JSON.stringify(finalProtocols));
+      }
+    });
+  });
+};
+const windowsCfg = {
+  id: null,
+  //唯一id
+  title: "",
+  //窗口标题
+  width: null,
+  //宽度
+  height: null,
+  //高度
+  minWidth: null,
+  //最小宽度
+  minHeight: null,
+  //最小高度
+  route: "",
+  // 页面路由URL '/manage?id=123'
+  resizable: true,
+  //是否支持调整窗口大小
+  maximize: false,
+  //是否最大化
+  backgroundColor: "#eee",
+  //窗口背景色
+  data: null,
+  //数据
+  isMultiWindow: false,
+  //是否支持多开窗口 (如果为false，当窗体存在，再次创建不会新建一个窗体 只focus显示即可，，如果为true，即使窗体存在，也可以新建一个)
+  isMainWin: false,
+  //是否主窗口(当为true时会替代当前主窗口)
+  parentId: null,
+  //父窗口id  创建父子窗口 -- 子窗口永远显示在父窗口顶部 【父窗口可以操作】
+  modal: false
+  //模态窗口 -- 模态窗口是禁用父窗口的子窗口，创建模态窗口必须设置 parent 和 modal 选项 【父窗口不能操作】
+};
+class Window {
+  constructor() {
+    __publicField(this, "main");
+    __publicField(this, "group");
+    __publicField(this, "tray");
+    this.main = null;
+    this.group = {};
+    this.tray = null;
+  }
+  // 窗口配置
+  winOpts(wh = []) {
+    return {
+      width: wh[0],
+      height: wh[1],
+      backgroundColor: "#f7f8fc",
+      autoHideMenuBar: false,
+      resizable: true,
+      minimizable: true,
+      maximizable: true,
+      frame: true,
+      show: false,
+      minWidth: 0,
+      minHeight: 0,
+      modal: true,
+      webPreferences: {
+        contextIsolation: false,
+        //上下文隔离
+        nodeIntegration: true,
+        //启用Node集成（是否完整的支持 node）
+        webSecurity: false,
+        preload: path.join(__dirname, "../electron-preload/index.js")
+      }
+    };
+  }
+  // 获取窗口
+  getWindow(id) {
+    return electron.BrowserWindow.fromId(id);
+  }
+  // 创建窗口
+  createWindows(options) {
+    console.log("------------creating window...");
+    let args = Object.assign({}, windowsCfg, options);
+    for (let i in this.group) {
+      if (this.getWindow(Number(i)) && this.group[i].route === args.route && !this.group[i].isMultiWindow) {
+        this.getWindow(Number(i)).focus();
+        return;
+      }
+    }
+    let opt = this.winOpts([args.width || 1920, args.height || 780]);
+    if (args.parentId) {
+      opt.parent = this.getWindow(args.parentId);
+    } else if (this.main) {
+      console.log(666);
+    }
+    opt.modal = args.modal;
+    opt.resizable = args.resizable;
+    if (args.backgroundColor)
+      opt.backgroundColor = args.backgroundColor;
+    if (args.minWidth)
+      opt.minWidth = args.minWidth;
+    if (args.minHeight)
+      opt.minHeight = args.minHeight;
+    let win = new electron.BrowserWindow(opt);
+    console.log("window id: " + win.id);
+    this.group[win.id] = {
+      route: args.route,
+      isMultiWindow: args.isMultiWindow
+    };
+    console.log("this.group", this.group);
+    if (args.maximize && args.resizable) {
+      win.maximize();
+    }
+    if (args.isMainWin) {
+      if (this.main) {
+        delete this.group[this.main.id];
+        this.main.close();
+      }
+      this.main = win;
+    }
+    args.id = win.id;
+    win.on("close", () => win.setOpacity(0));
+    let winURL;
+    if (electron.app.isPackaged) {
+      winURL = args.route ? path.join(__dirname, `../../dist/index.html${args.route}`) : path.join(__dirname, `../../dist/index.html`);
+    } else {
+      winURL = args.route ? `${process.env["VITE_DEV_SERVER_URL"]}${args.route}?winId=${args.id}` : `${process.env["VITE_DEV_SERVER_URL"]}?winId=${args.id}`;
+    }
+    console.log("new window url:", winURL);
+    console.log("env", process.env.NODE_ENV);
+    if (process.env.NODE_ENV === "production") {
+      win.loadURL(path.join(__dirname, "../dist/index.html"));
+    } else {
+      win.loadURL(winURL);
+    }
+    win.once("ready-to-show", () => {
+      win.show();
+    });
+  }
+  // 创建托盘
+  createTray() {
+    const contextMenu = electron.Menu.buildFromTemplate([
+      {
+        label: "注销",
+        click: () => {
+        }
+      },
+      {
+        type: "separator"
+        // 分割线
+      },
+      // 菜单项
+      {
+        label: "退出",
+        role: "quit"
+        // 使用内置的菜单行为，就不需要再指定click事件
+      }
+    ]);
+    this.tray = new electron.Tray(path.join(__dirname, "../favicon.ico"));
+    this.tray.on("click", () => {
+      for (let i in this.group) {
+        if (this.group[i])
+          this.getWindow(Number(i)).show();
+      }
+    });
+    this.tray.on("right-click", () => {
+      var _a;
+      (_a = this.tray) == null ? void 0 : _a.popUpContextMenu(contextMenu);
+    });
+    this.tray.setToolTip("小猪课堂");
+  }
+  // 开启监听
+  listen() {
+    electron.ipcMain.on("pinUp", (event, winId) => {
+      event.preventDefault();
+      if (winId && this.main.id == winId) {
+        let win = this.getWindow(Number(this.main.id));
+        if (win.isAlwaysOnTop()) {
+          win.setAlwaysOnTop(false);
+        } else {
+          win.setAlwaysOnTop(true);
+        }
+      }
+    });
+    electron.ipcMain.on("window-hide", (event, winId) => {
+      if (winId) {
+        this.getWindow(Number(winId)).hide();
+      } else {
+        for (let i in this.group) {
+          if (this.group[i])
+            this.getWindow(Number(i)).hide();
+        }
+      }
+    });
+    electron.ipcMain.on("window-show", (event, winId) => {
+      if (winId) {
+        this.getWindow(Number(winId)).show();
+      } else {
+        for (let i in this.group) {
+          if (this.group[i])
+            this.getWindow(Number(i)).show();
+        }
+      }
+    });
+    electron.ipcMain.on("mini", (event, winId) => {
+      if (winId) {
+        this.getWindow(Number(winId)).minimize();
+      } else {
+        for (let i in this.group) {
+          if (this.group[i]) {
+            this.getWindow(Number(i)).minimize();
+          }
+        }
+      }
+    });
+    electron.ipcMain.on("window-max", (event, winId) => {
+      if (winId) {
+        this.getWindow(Number(winId)).maximize();
+      } else {
+        for (let i in this.group)
+          if (this.group[i])
+            this.getWindow(Number(i)).maximize();
+      }
+    });
+    electron.ipcMain.on("window-new", (event, args) => this.createWindows(args));
+    if (this.main) {
+      commandIPCListen(this.main);
+    } else {
+      console.log("main window not exists");
+    }
+  }
+}
+const isDevelopment = process.env.NODE_ENV !== "production";
+async function createWindow() {
+  let window = new Window();
+  window.createWindows({ isMainWin: true });
+  window.listen();
+  window.createTray();
+}
+electron.app.on("window-all-closed", () => {
+  if (process.platform !== "darwin") {
+    electron.app.quit();
+  }
+});
+electron.app.on("activate", () => {
+  if (electron.BrowserWindow.getAllWindows().length === 0)
+    createWindow();
+});
+electron.app.on("ready", async () => {
+  createWindow();
+});
+if (isDevelopment) {
+  if (process.platform === "win32") {
+    process.on("message", (data) => {
+      if (data === "graceful-exit") {
+        console.log("graceful-exit");
+        electron.app.quit();
+      }
+    });
+  } else {
+    process.on("SIGTERM", () => {
+      electron.app.quit();
+    });
+  }
+}

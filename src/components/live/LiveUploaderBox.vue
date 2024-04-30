@@ -21,7 +21,7 @@ export default {
 
 <template>
     <div class="liveStreamBox">
-        <LiveUploaderMedia />
+        <LiveUploaderMedia :room="room" />
         <!-- <LiveChat /> -->
     </div>
 </template>

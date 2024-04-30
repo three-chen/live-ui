@@ -121,7 +121,7 @@ export class Window {
       }
     }
     // 创建electron窗口的配置参数
-    let opt = this.winOpts([args.width || 1080, args.height || 720])
+    let opt = this.winOpts([args.width || 1920, args.height || 780])
     // console.log('create window opt', opt)
 
     // 判断是否有父窗口
@@ -140,7 +140,7 @@ export class Window {
 
     // console.log('opt', opt)
     let win = new BrowserWindow(opt)
-    console.log('window id: ' + win)
+    console.log('window id: ' + win.id)
     this.group[win.id] = {
       route: args.route,
       isMultiWindow: args.isMultiWindow
@@ -279,6 +279,10 @@ export class Window {
 
     // 创建窗口
     ipcMain.on('window-new', (event, args) => this.createWindows(args))
-    commandIPCListen()
+    if (this.main) {
+      commandIPCListen(this.main)
+    } else {
+      console.log('main window not exists')
+    }
   }
 }
