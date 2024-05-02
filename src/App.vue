@@ -26,7 +26,7 @@ import MyHeaderVue from '@/components/header/MyHeader.vue';
     overflow-y: auto;
     max-height: calc(100vh - 64px);
     background-color: var(--body-background);
-    padding: var(--padding-xl) var(--padding-xl) 0 var(--padding-xl);
+    padding: var(--padding-sm) var(--padding-xl) 0 var(--padding-xl);
   }
 }
 </style>

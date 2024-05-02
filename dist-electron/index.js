@@ -15,11 +15,12 @@ var EncodeProtocolEnum = /* @__PURE__ */ ((EncodeProtocolEnum2) => {
   return EncodeProtocolEnum2;
 })(EncodeProtocolEnum || {});
 let mainWindow = null;
+const childProcessMap = /* @__PURE__ */ new Map();
 const commandIPCListen = (mainW) => {
   mainWindow = mainW;
   electron.ipcMain.on("ffmpegCommandExec", (event, arg) => {
     console.log(arg);
-    const ChildProcess = child_process.exec(arg, (error, stdout, stderr) => {
+    child_process.exec(arg, (error, stdout, stderr) => {
       if (error) {
         console.error(`exec error: ${error}`);
         return;
@@ -27,7 +28,6 @@ const commandIPCListen = (mainW) => {
       console.log(`stdout: ${stdout}`);
       console.log(`stderr: ${stderr}`);
     });
-    console.log("ChildProcess", ChildProcess);
   });
   electron.ipcMain.on("ffmpegCommandSpawn", (event, arg) => {
     const { command, args } = JSON.parse(arg);
@@ -39,7 +39,9 @@ const commandIPCListen = (mainW) => {
       console.log("Closing ffmpeg process...");
       ChildProcess.kill("SIGINT");
     }, 3e4);
-    console.log("ChildProcess", ChildProcess);
+    if (ChildProcess.pid)
+      childProcessMap.set(ChildProcess.pid, ChildProcess);
+    console.log("ChildProcess pid", ChildProcess.pid);
   });
   electron.ipcMain.on("main-ffmpeg-protocols", (event, arg) => {
     child_process.exec(arg, (error, stdout, stderr) => {
@@ -47,7 +49,6 @@ const commandIPCListen = (mainW) => {
         console.error(`exec error: ${error}`);
         return;
       }
-      console.log("stdout:", stdout);
       const inputProtocolsRegex = /Input:\r?\n((?:\s{2}\w+\r?\n)+)/;
       const inputProtocolsMatch = stdout.match(inputProtocolsRegex);
       if (inputProtocolsMatch && inputProtocolsMatch[1]) {
@@ -56,6 +57,19 @@ const commandIPCListen = (mainW) => {
         let finalProtocols = inputProtocols.filter((protocol) => supports.includes(protocol.toUpperCase()));
         finalProtocols = finalProtocols.map((protocol) => protocol.toUpperCase());
         mainWindow == null ? void 0 : mainWindow.webContents.send("main-ffmpeg-protocols-response", JSON.stringify(finalProtocols));
+      }
+    });
+  });
+  electron.ipcMain.on("main-desktop-stream", (event, arg) => {
+    console.log("main-desktop-stream", arg);
+    electron.desktopCapturer.getSources({ types: ["window", "screen"] }).then(async (sources) => {
+      for (const source of sources) {
+        console.log("sources", source.name, source.name.includes("Electron"), source.name.includes("整个屏幕"));
+        if (source.name.includes("整个屏幕") || source.name.includes("Electron")) {
+          mainWindow == null ? void 0 : mainWindow.webContents.send("main-desktop-stream-response", source.id);
+          console.log(source.id);
+          return;
+        }
       }
     });
   });
@@ -140,7 +154,7 @@ class Window {
         return;
       }
     }
-    let opt = this.winOpts([args.width || 1920, args.height || 780]);
+    let opt = this.winOpts([args.width || 1920, args.height || 880]);
     if (args.parentId) {
       opt.parent = this.getWindow(args.parentId);
     } else if (this.main) {

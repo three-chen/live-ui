@@ -19,5 +19,17 @@ export default defineConfig({
   },
   optimizeDeps: {
     exclude: ['electron', 'path', 'fs']
+  },
+
+  server: {
+    // port: 5173,
+    // open: true,
+    proxy: {
+      '/api': {
+        target: 'http://127.0.0.1:3000/api',
+        changeOrigin: true,
+        rewrite: path => path.replace(/^\/api/, '') // 不可以省略rewrite
+      }
+    }
   }
 })

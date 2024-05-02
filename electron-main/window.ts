@@ -121,7 +121,7 @@ export class Window {
       }
     }
     // 创建electron窗口的配置参数
-    let opt = this.winOpts([args.width || 1920, args.height || 780])
+    let opt = this.winOpts([args.width || 1920, args.height || 880])
     // console.log('create window opt', opt)
 
     // 判断是否有父窗口

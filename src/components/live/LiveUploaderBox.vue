@@ -1,10 +1,10 @@
 <script>
-// import LiveChat from './LiveChat.vue';
+import LiveUploaderChat from './LiveUploaderChat.vue';
 import LiveUploaderMedia from './LiveUploaderMedia.vue';
 
 export default {
     components: {
-        // LiveChat,
+        LiveUploaderChat,
         LiveUploaderMedia
     },
     props: {
@@ -21,8 +21,8 @@ export default {
 
 <template>
     <div class="liveStreamBox">
-        <LiveUploaderMedia :room="room" />
-        <!-- <LiveChat /> -->
+        <LiveUploaderMedia :room="room" class="uploaderMedia" />
+        <LiveUploaderChat :room="room" class="uploaderChat"></LiveUploaderChat>
     </div>
 </template>
 
@@ -30,7 +30,20 @@ export default {
 .liveStreamBox {
     height: 100%;
     display: flex;
-    padding-bottom: var(--padding-xl);
+    padding-bottom: var(--padding-sm);
     justify-content: space-between;
+    gap: var(--padding-xl);
+    justify-content: space-between;
+
+    .uploaderMedia {
+        height: 100%;
+        flex: 1;
+    }
+
+    .uploaderChat {
+        height: 100%;
+        flex: 0 0 428px;
+        width: 428px
+    }
 }
 </style>
