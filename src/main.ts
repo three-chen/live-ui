@@ -1,5 +1,3 @@
-import './assets/main.css'
-
 import Antd from 'ant-design-vue'
 import { createApp } from 'vue'
 import { Pinia } from './stores/index'
@@ -9,6 +7,7 @@ import router from './router'
 
 import 'ant-design-vue/dist/reset.css'
 import './root.css'
+import './assets/main.css'
 
 const app = createApp(App)
 

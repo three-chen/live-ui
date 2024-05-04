@@ -9,6 +9,22 @@ const router = createRouter({
       component: () => import('@/views/MainHall.vue')
     },
     {
+      path: '/profile',
+      name: 'profile',
+      component: () => import('@/views/profile/MainProfile.vue'),
+      redirect: '/profile/config',
+      children: [
+        {
+          path: 'config',
+          component: () => import('@/views/profile/UserConfig.vue')
+        }
+        // {
+        //   path: 'posts',
+        //   component: UserPosts,
+        // },
+      ]
+    },
+    {
       path: '/auth',
       name: 'auth',
       redirect: '/auth/login',

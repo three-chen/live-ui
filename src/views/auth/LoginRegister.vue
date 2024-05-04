@@ -1,27 +1,28 @@
 <template>
     <div class="box">
-        <MyHeader ref="logHeader"></MyHeader>
         <div class="container">
-            <div class="drop" @click="selectLogin"
-                :class="[selected === 1 ? big1 : mini1, isCodeLogin ? 'codeLogin' : 'notcodeLogin']">
-                <div class="content" :class="isCodeLogin ? 'codeLogin' : 'notcodeLogin'">
-                    <div class="el-icon-s-promotion" @click="changeLogin" style="cursor: pointer;"></div>
+            <div class="drop notcodeLogin" @click="selectLogin" :class="[selected === 1 ? big1 : mini1]">
+                <div class="content notcodeLogin">
                     <p class="content-title">登录</p>
-                    <a-form v-show="selected === 1 ? true : false" :model="login" status-icon :rules="rules" ref="login"
-                        class="loginRuleForm">
+                    <a-form :class="[selected === 1 ? '' : 'formUnselected']" :model="loginForm" class="loginRuleForm">
                         <div>
-                            <a-form-item prop="usernamel" class="myBox inputBox">
-                                <el-input type="text" v-model="login.usernamel" :placeholder="loginHolder"></el-input>
+                            <a-form-item class="myBox inputBox" :rules="[{ required: true, message: '请输入你的邮箱地址!' }]">
+                                <a-input v-model:value="loginForm.email" placeholder="邮箱地址">
+                                    <template #prefix>
+                                        <MailOutlined style="color: rgba(0, 0, 0, 0.25)" />
+                                    </template>
+                                </a-input>
                             </a-form-item>
-                            <a-form-item v-show="isCodeLogin" class="myBox myEmail">
-                                <el-button class="el-icon-message" type="primary" @click="getLoginCode"></el-button>
-                            </a-form-item>
-                            <a-form-item prop="passl" class="myBox inputBox">
-                                <el-input type="password" v-model="login.passl" :placeholder="passHolder"></el-input>
+                            <a-form-item class="myBox inputBox" :rules="[{ required: true, message: '请输入你的密码!' }]">
+                                <a-input-password v-model:value="loginForm.password" placeholder="密码">
+                                    <template #prefix>
+                                        <LockOutlined style="color: rgba(0, 0, 0, 0.25)" />
+                                    </template>
+                                </a-input-password>
                             </a-form-item>
                         </div>
                         <a-form-item class="myBox submitBox">
-                            <el-button type="primary" @click="submitLogin('login')">Login</el-button>
+                            <a-button type="primary" @click="submitLogin()">Login</a-button>
                         </a-form-item>
                     </a-form>
                 </div>
@@ -31,108 +32,129 @@
             <div class="drop" @click="selectRegiste" :class="[selected === 2 ? big2 : mini2]">
                 <div class="content">
                     <p class="content-title">注册</p>
-                    <a-form v-show="selected === 2 ? true : false" :model="registe" status-icon :rules="rules"
-                        ref="registe" class="loginRuleForm">
-                        <a-form-item prop="usernamer" class="myBox inputBox">
-                            <el-input type="text" v-model="registe.usernamer" placeholder="用户名"></el-input>
+                    <a-form :class="[selected === 2 ? '' : 'formUnselected']" :model="registerForm"
+                        class="loginRuleForm">
+                        <a-form-item class="myBox inputBox" :rules="[{ required: true, message: '请输入你的用户名!' }]">
+                            <a-input v-model:value="registerForm.name" placeholder="用户名">
+                                <template #prefix>
+                                    <UserOutlined style="color: rgba(0, 0, 0, 0.25)" />
+                                </template>
+                            </a-input>
                         </a-form-item>
-                        <a-form-item prop="emailr" class="myBox inputBox">
-                            <el-input type="text" v-model="registe.emailr" placeholder="邮箱地址"></el-input>
+                        <a-form-item class="myBox inputBox" :rules="[{ required: true, message: '请输入你的密码!' }]">
+                            <a-input-password v-model:value="registerForm.password" placeholder="密码">
+                                <template #prefix>
+                                    <LockOutlined style="color: rgba(0, 0, 0, 0.25)" />
+                                </template>
+                            </a-input-password>
                         </a-form-item>
-                        <a-form-item class="myBox myEmail1">
-                            <el-button class="el-icon-message" type="primary" @click="getRegisteCode"></el-button>
-                        </a-form-item>
-                        <a-form-item prop="emailCoder" class="myBox inputBox">
-                            <el-input type="text" v-model="registe.emailCoder" placeholder="邮箱验证码"></el-input>
-                        </a-form-item>
-                        <a-form-item prop="passr" class="myBox inputBox">
-                            <el-input type="password" v-model="registe.passr" placeholder="密码"></el-input>
+                        <a-form-item class="myBox inputBox" :rules="[{ required: true, message: '请输入你的邮箱地址!' }]">
+                            <a-input v-model:value="registerForm.email" placeholder="邮箱地址">
+                                <template #prefix>
+                                    <MailOutlined style="color: rgba(0, 0, 0, 0.25)" />
+                                </template>
+                            </a-input>
                         </a-form-item>
                         <a-form-item class="myBox submitBox">
-                            <el-button type="primary" @click="submitRegiste('registe')">Registe</el-button>
+                            <a-button type="primary" @click="submitRegiste()">Registe</a-button>
                         </a-form-item>
                     </a-form>
                 </div>
             </div>
         </div>
-        <!-- <div class="container">
-            <div class="drop" @click="selectForget" :class="[selected === 3 ? big3 : mini3]">
-                <div class="content">
-                    <p class="content-title">忘记密码</p>
-                    <a-form v-show="selected === 3 ? true : false" :model="query" status-icon :rules="rules" ref="query"
-                        class="loginRuleForm">
-                        <a-form-item prop="emailq" class="myBox inputBox">
-                            <el-input type="text" v-model="query.emailq" placeholder="邮箱地址"></el-input>
-                        </a-form-item>
-                        <a-form-item class="myBox myEmail2">
-                            <el-button class="el-icon-message" type="primary" @click="getQueryCode"></el-button>
-                        </a-form-item>
-                        <a-form-item prop="emailCodeq" class="myBox inputBox">
-                            <el-input type="text" v-model="query.emailCodeq" placeholder="确认邮箱验证码"></el-input>
-                        </a-form-item>
-                        <a-form-item prop="newpassq" class="myBox inputBox">
-                            <el-input type="password" v-model="query.newpassq" placeholder="请输入新密码"></el-input>
-                        </a-form-item>
-                        <a-form-item class="myBox submitBox">
-                            <el-button type="primary" @click="submitQuery('query')">Change</el-button>
-                        </a-form-item>
-                    </a-form>
-                </div>
-            </div>
-        </div> -->
     </div>
 </template>
 
-<script>
+<script lang="ts">
+import { useUserStore } from '@/stores/user';
+import { LockOutlined, MailOutlined, UserOutlined } from '@ant-design/icons-vue';
+import { notification } from 'ant-design-vue';
+import { LoginInfo, RegisterInfo, postLoginInfo, postRegisterInfo } from 'live-service';
+import { ref } from "vue";
+import { useRouter } from 'vue-router';
+
 export default {
     name: "LoginRegister",
+    components: {
+        LockOutlined,
+        MailOutlined,
+        UserOutlined
+    },
     setup() {
-        return {
-            login: {
-                usernamel: '',
-                passl: '',
-            },
-            registe: {
-                usernamer: '',
-                emailr: '',
-                emailCoder: '',
-                passr: '',
-            },
-            query: {
-                emailq: '',
-                emailCodeq: '',
-                newpassq: '',
-            },
-            selected: 1,//1为登录，2为注册，3为找回密码
-            big1: "selected selected1",
-            big2: "selected selected2",
-            big3: "selected selected3",
-            mini1: "unselected unselected1",
-            mini2: "unselected unselected2",
-            mini3: "unselected unselected3",
-            isCodeLogin: false,
-            loginHolder: "邮箱地址",
-            passHolder: "密码",
-        };
-    },
-    methods: {
-        submitLogin(formName) {
-        },
-        submitRegiste(formName) {
-        },
-        submitQuery(formName) {
-        },
-        selectLogin() {
-            this.selected = 1;
-        },
-        selectRegiste() {
-            this.selected = 2;
-        },
-        selectForget() {
-            this.selected = 3;
-        },
+        const selected = ref(1);//1为登录，2为注册，3为找回密码
+        const big1 = ref<string>("selected selected1")
+        const big2 = ref<string>("selected selected2")
+        const mini1 = ref<string>("unselected unselected1")
+        const mini2 = ref<string>("unselected unselected2")
 
-    },
+        const userStore = useUserStore();
+        const router = useRouter();
+
+        const loginForm = ref<LoginInfo>({
+            email: '',
+            password: ""
+        })
+        const registerForm = ref<RegisterInfo>({
+            name: '',
+            password: "",
+            email: ""
+        })
+
+        const submitLogin = () => {
+            console.log("submitLogin", loginForm.value);
+            postLoginInfo(loginForm.value).then(res => {
+                if (res.success && res.data) {
+                    console.log("res loginR", res);
+                    const { auth, token, useremail, username, avatar, userId } = res.data
+                    const userInfo = { userId, username, avatar, useremail, auth, token }
+                    userStore.setLogin(true)
+                    userStore.setUser(userInfo)
+                    localStorage.setItem("token", token)
+                    localStorage.setItem('userInfo', JSON.stringify(userInfo))
+
+                    notification.success({
+                        message: '登陆成功',
+                        description: `欢迎${username}`,
+                    });
+                    router.push({ path: '/' })
+                }
+            })
+
+        }
+        const submitRegiste = () => {
+            console.log("submitRegiste", registerForm.value);
+            postRegisterInfo(registerForm.value).then(res => {
+                if (res.success && res.data) {
+                    console.log("res registerR", res);
+                    const registerR = res.data
+                    notification.success({
+                        message: '注册成功',
+                        description: `感谢${registerR.username}注册`,
+                    });
+                }
+            })
+        }
+
+        const selectLogin = () => {
+            selected.value = 1;
+        }
+        const selectRegiste = () => {
+            selected.value = 2;
+        }
+        return {
+            loginForm,
+            registerForm,
+            selected,
+            big1,
+            big2,
+            mini1,
+            mini2,
+            submitLogin,
+            submitRegiste,
+            selectLogin,
+            selectRegiste,
+        };
+    }
 };
 </script>
 
@@ -254,6 +276,7 @@ export default {
     flex-direction: column;
     justify-content: center;
     align-items: center;
+    transition: 0.5s;
 }
 
 .codeLogin {
@@ -286,28 +309,34 @@ export default {
     border-radius: 5px;
 }
 
-// .container .drop .content .loginRuleForm .myBox /deep/ .el-input__inner {
-//     border: none;
-//     outline: none;
-//     background: transparent;
-//     width: 100%;
-//     font-size: 1em;
-//     padding: 10px 15px;
-//     font-family: myFont;
-//     transition: 1s;
-// }
+.container .drop .content .loginRuleForm .myBox .ant-input-affix-wrapper {
+    border: none;
+    outline: none;
+    box-shadow: none;
+    background: transparent;
+    width: 100%;
+    font-size: 1em;
+    padding: 10px 15px;
+    font-family: myFont;
+    transition: 1s;
+}
 
-// .container .drop .content .loginRuleForm .myBox /deep/ .el-button--primary {
-//     text-transform: uppercase;
-//     font-size: 1em;
-//     cursor: pointer;
-//     letter-spacing: 0.1em;
-//     font-weight: 500;
-//     font-family: myFont;
-//     background-color: transparent;
-//     border: none;
-//     transition: 1s;
-// }
+.container .drop .content .loginRuleForm .myBox .ant-input-affix-wrapper :deep(input.ant-input) {
+    background: transparent !important;
+    font-family: myFont;
+}
+
+.container .drop .content .loginRuleForm .myBox .ant-btn-primary {
+    text-transform: uppercase;
+    font-size: 1em;
+    cursor: pointer;
+    letter-spacing: 0.1em;
+    font-weight: 500;
+    font-family: myFont;
+    background-color: transparent;
+    border: none;
+    transition: 1s;
+}
 
 .container .drop .content .loginRuleForm .submitBox {
     width: 120px;
@@ -319,6 +348,11 @@ export default {
 
 .container .drop .content .loginRuleForm .submitBox:hover {
     width: 150px;
+}
+
+.formUnselected {
+    transform: scale(0);
+    position: absolute;
 }
 
 .selected {

@@ -1,7 +1,15 @@
 <script setup lang="ts">
-import { RouterView } from 'vue-router';
-
 import MyHeaderVue from '@/components/header/MyHeader.vue';
+import { RouterView } from 'vue-router';
+import { useUserStore } from './stores/user';
+
+const userStore = useUserStore();
+const userInfo = localStorage.getItem('userInfo');
+
+if (userInfo) {
+  userStore.setLogin(true)
+  userStore.setUser(JSON.parse(userInfo));
+}
 
 </script>
 
