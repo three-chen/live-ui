@@ -11,20 +11,27 @@ watch(
     () => userStore.isLogin,
     () => {
         isLogin.value = userStore.isLogin
-        console.log('isLogin', isLogin.value)
-        console.log('userInfo', userInfo.value)
     },
     {
         immediate: true
     })
+
+
+
+const quitLogin = () => {
+    localStorage.removeItem('token')
+    localStorage.removeItem('userInfo')
+    userStore.isLogin = false
+    userStore.user = undefined
+}
 </script>
 
 <template>
     <div class="rightHeader">
         <router-link v-if="isLogin === false" to="/auth/login" class="header-router">
-            <div class="feature">登录{{ isLogin }}</div>
+            <div class="feature">登录</div>
         </router-link>
-        <user-profile v-else :userInfo="userInfo" />
+        <user-profile v-else :userInfo="userInfo" :quitLogin="quitLogin" />
     </div>
 </template>
 

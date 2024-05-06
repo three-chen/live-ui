@@ -1,4 +1,5 @@
 @import './base.css';
+@import './scrollbar/scrollbar.css';
 @import './fonts/font.css';
 
 #app {

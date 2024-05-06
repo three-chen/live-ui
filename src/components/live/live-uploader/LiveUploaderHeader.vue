@@ -1,58 +1,110 @@
 <script lang="ts">
-import { PlusOutlined } from '@ant-design/icons-vue';
-import type { UploadProps } from 'ant-design-vue';
-import { ref } from 'vue';
+import SinglePicUpload from '@/components/upload/SinglePicUpload.vue';
+import { useLiveStore } from '@/stores/live';
+import { fileToBlob } from '@/utils';
+import { UploadFile, notification } from 'ant-design-vue';
+import { LiveInfo, postLiveInfo, uploadImgToServer } from 'live-service';
+import { debounce } from 'lodash';
+import { computed, ref } from 'vue';
 
 export default {
     name: 'LiveUploaderHeader',
-    props: {
+    components: {
+        SinglePicUpload
     },
     setup() {
-        function getBase64(file: File) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.readAsDataURL(file);
-                reader.onload = () => resolve(reader.result);
-                reader.onerror = error => reject(error);
-            });
-        }
+        const liveStore = useLiveStore();
+        const live = computed(() => liveStore.live)
+        const isCreated = computed(() => liveStore.isCreated)
 
-        const previewVisible = ref(false);
-        const previewImage = ref('');
-        const previewTitle = ref('');
+        const liveTitle = computed({
+            get: () => live?.value?.liveTitle || '新人主播，请多多关照~',
+            set: async (value) => {
+                liveStore.setLive({ liveTitle: value })
+            }
+        })
+        const liveType = computed({
+            get: () => live?.value?.typeId || '0',
+            set: async (value) => {
+                liveStore.setLive({ typeId: value })
+            }
+        })
 
-        const fileList = ref<UploadProps['fileList']>([
+        const coverFile = ref<UploadFile>(
             {
                 uid: '-1',
-                name: 'image.png',
+                name: liveTitle.value,
                 status: 'done',
-                url: 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png',
+                url: live?.value?.cover_picture_url || 'http://localhost:3000/imgs/cover/default_cover_picture.png',
             },
-        ]);
+        );
 
-        const handleCancel = () => {
-            previewVisible.value = false;
-            previewTitle.value = '';
-        };
-        const handlePreview = async (file: UploadProps['fileList'][number]) => {
-            if (!file.url && !file.preview) {
-                file.preview = (await getBase64(file.originFileObj)) as string;
+        const onUpload = async (file: any) => {
+            const blob = await fileToBlob(file.file);
+            const url = await uploadImgToServer(blob, 'cover')
+            if (url) {
+                const arr = url.replace('public', '').split('/')
+                const filename = arr[arr.length - 1]
+                const finalUrl = `http://localhost:3000/imgs/cover/${filename}`
+
+                coverFile.value.status = 'done'
+                file.onSuccess()
+                notification.success({
+                    message: '直播封面上传成功',
+                    description: '直播封面上传成功',
+                })
+
+                liveStore.setLive({ cover_picture_url: finalUrl })
+                console.log("修改直播封面")
+                await updateIfCreated({ cover_picture_url: finalUrl }, '直播封面修改成功')
+            } else {
+                notification.error({
+                    message: '直播封面上传失败',
+                    description: '直播封面上传失败',
+                })
+                file.onError()
             }
-            previewImage.value = file.url || file.preview;
-            previewVisible.value = true;
-            previewTitle.value = file.name || file.url.substring(file.url.lastIndexOf('/') + 1);
+        }
+
+        const debounceChangeLiveTitle = debounce(async (e: any) => {
+            liveTitle.value = e.target.value
+            await updateIfCreated({ liveTitle: e.target.value }, '直播标题修改成功')
+        }, 1000)
+
+
+        const handleChange = async (value: string) => {
+            liveType.value = value
+            await updateIfCreated({ typeId: value }, '直播分区修改成功')
         };
 
-        const liveTitle = ref('初来报道，关注一下吧~');
+        const init = () => {
+            liveStore.setLive({
+                liveTitle: '新人主播，请多多关照~',
+                typeId: '0',
+                cover_picture_url: 'http://localhost:3000/imgs/cover/default_cover_picture.png'
+            })
+        }
+        init()
+
+        const updateIfCreated = async (liveInfo: Partial<LiveInfo>, message: string) => {
+            if (isCreated.value) {
+                const res = await postLiveInfo(live?.value?.liveId!, liveInfo)
+                if (res.success && res.data) {
+                    notification.success({
+                        message: message,
+                        description: message,
+                    })
+                }
+            }
+        }
+
         return {
-            PlusOutlined,
-            fileList,
-            previewVisible,
-            previewImage,
-            previewTitle,
-            handleCancel,
-            handlePreview,
-            liveTitle
+            liveTitle,
+            liveType,
+            onUpload,
+            coverFile,
+            handleChange,
+            debounceChangeLiveTitle
         }
     }
 };
@@ -60,19 +112,8 @@ export default {
 
 <template>
     <div class="mediaBox-header">
-        <a-upload class="ant-upload" v-model:file-list="fileList"
-            action="https://www.mocky.io/v2/5cc8019d300000980a055e76" list-type="picture-card" @preview="handlePreview">
-            <div v-if="fileList && fileList.length < 1">
-                <plus-outlined />
-                <div style="margin-top: 8px">Upload</div>
-            </div>
-        </a-upload>
-        <a-modal :open="previewVisible" :title="previewTitle" :footer="null" @cancel="handleCancel">
-            <img alt="example" style="width: 100%" :src="previewImage" />
-        </a-modal>
-
-        <a-input v-model:value="liveTitle" placeholder="Basic usage">
-
+        <SinglePicUpload :on-upload="onUpload" class="live-uploader-cover-pic" :file="coverFile"></SinglePicUpload>
+        <a-input v-model:value="liveTitle" placeholder="请输入直播标题" @change="debounceChangeLiveTitle">
             <template #suffix>
                 <svg t="1714667698715" class="icon" viewBox="0 0 1024 1024" version="1.1"
                     xmlns="http://www.w3.org/2000/svg" p-id="4277" width="20" height="20">
@@ -82,6 +123,12 @@ export default {
                 </svg>
             </template>
         </a-input>
+        <a-select ref="select" v-model:value="liveType" style="width: 120px" @change="handleChange">
+            <a-select-option value="0">未分区</a-select-option>
+            <a-select-option value="1">游戏区</a-select-option>
+            <a-select-option value="2">运动区</a-select-option>
+            <a-select-option value="3">生活区</a-select-option>
+        </a-select>
     </div>
 </template>
 
@@ -97,7 +144,7 @@ export default {
     background-color: var(--background);
     border-radius: var(--border-radius-sm);
 
-    .ant-upload-wrapper {
+    .ant-upload-wrapper.live-uploader-cover-pic {
         height: 65px;
         width: 65px;
 
@@ -116,6 +163,10 @@ export default {
             }
         }
 
+    }
+
+    .ant-input-affix-wrapper {
+        flex: 1;
     }
 }
 </style>

@@ -1,4 +1,30 @@
 <script lang="ts" setup>
+import { useUserStore } from '@/stores/user';
+import { getUserInfo } from 'live-service';
+import { computed, ref, watch } from 'vue';
+
+const userStore = useUserStore();
+const user = computed(() => userStore.user);
+
+const liveStreamPath = ref<string>('/auth/login')
+
+watch(
+    () => user?.value?.id,
+    async () => {
+        if (user?.value?.id) {
+            const res = await getUserInfo(user.value.id!);
+
+            if (res.success && res.data) {
+                userStore.setUser(res.data);
+                liveStreamPath.value = `/live/uploader/${res.data.roomId}`;
+                return;
+            }
+        }
+        liveStreamPath.value = '/auth/login';
+    },
+    {
+        immediate: true
+    })
 </script>
 
 <template>
@@ -14,10 +40,9 @@
         <router-link to="/" class="header-router">
             <div class="feature">大厅</div>
         </router-link>
-        <router-link to="/live/uploader/0" class="header-router">
+        <router-link :to="liveStreamPath" class="header-router">
             <div class="feature">我要直播</div>
         </router-link>
-
     </div>
 </template>
 

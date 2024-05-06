@@ -105,19 +105,24 @@ export default {
             postLoginInfo(loginForm.value).then(res => {
                 if (res.success && res.data) {
                     console.log("res loginR", res);
-                    const { auth, token, useremail, username, avatar, userId } = res.data
-                    const userInfo = { userId, username, avatar, useremail, auth, token }
+                    const { auth, token, email, name, avatar, id } = res.data
+                    const userInfo = { id, name, avatar, email, auth, token }
                     userStore.setLogin(true)
                     userStore.setUser(userInfo)
                     localStorage.setItem("token", token)
-                    localStorage.setItem('userInfo', JSON.stringify(userInfo))
 
                     notification.success({
                         message: '登陆成功',
-                        description: `欢迎${username}`,
+                        description: `欢迎${name}`,
                     });
                     router.push({ path: '/' })
                 }
+            }).catch(res => {
+                console.log("res login err", res);
+                notification.error({
+                    message: '登陆失败',
+                    description: `${res.msg}`,
+                });
             })
 
         }

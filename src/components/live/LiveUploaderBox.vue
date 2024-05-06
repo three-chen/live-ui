@@ -3,6 +3,7 @@ import LiveUploaderChat from './LiveUploaderChat.vue';
 import LiveUploaderMedia from './LiveUploaderMedia.vue';
 
 export default {
+    name: 'LiveUploaderBox',
     components: {
         LiveUploaderChat,
         LiveUploaderMedia

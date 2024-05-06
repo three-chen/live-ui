@@ -1,46 +1,22 @@
 <template>
-    <div class="box">
-        <MyHeader ref="selfHeader"></MyHeader>
+    <div class="main-profile-box">
         <div class="PersonTop">
-            <el-card class="cardtop">
+            <a-card class="cardtop">
                 <div class="PersonTop_img">
-                    <el-image class="profileimg" :src="profilesrc" fit="fill"></el-image>
+                    <SinglePicUpload :on-upload="onUpload" class="main-profile-avatar" :file="avatarFile">
+                    </SinglePicUpload>
                 </div>
                 <div class="PersonTop_text">
                     <div class="user_text">
                         <div class="user_name">
-                            <span> {{ $store.state.name }} </span>
+                            <span> {{ userInfo && userInfo.name }} </span>
                         </div>
-                        <div class="user_anniu">
-                            <el-upload class="upload-demo" action="https://61.139.65.134:61956/user_add_head/"
-                                :headers="myHeader" name="head" multiple :limit="3" :on-error="handleError"
-                                :on-success="handleSuccess" :show-file-list="fileList" ref="myUpload">
-                                <el-button class="el-icon-edit" size="medium" type="primary">上传头像</el-button>
-                            </el-upload>
-                            <!-- <el-button class="el-icon-edit" type="primary" size="medium" plain @click="upload">上传头像
-                            </el-button> -->
+                        <div class="user_email">
+                            <span> {{ userInfo && userInfo.email }} </span>
                         </div>
-                        <div class="user_anniu">
-                            <el-button class="el-icon-edit" type="primary" size="medium" plain
-                                @click="dialogFormVisible = true">修改密码
-                            </el-button>
+                        <div class="user_brief">
+                            <span> {{ (userInfo && userInfo.briefInfo) || '这个人什么也没写哦~' }} </span>
                         </div>
-
-                        <el-dialog title="修改密码" :visible.sync="dialogFormVisible">
-                            <el-form :model="form">
-                                <el-form-item label="请输入原密码" :label-width="formLabelWidth">
-                                    <el-input v-model="form.oldPass" autocomplete="off"></el-input>
-                                </el-form-item>
-                                <el-form-item label="请输入新密码" :label-width="formLabelWidth">
-                                    <el-input v-model="form.newPass" autocomplete="off"></el-input>
-                                </el-form-item>
-                            </el-form>
-                            <div slot="footer" class="dialog-footer">
-                                <el-button @click="dialogFormVisible = false">取 消</el-button>
-                                <el-button type="primary" @click="alter">确 定</el-button>
-                            </div>
-                        </el-dialog>
-
                     </div>
                     <div class="user_num">
                         <div style="cursor: pointer">
@@ -57,33 +33,17 @@
                         </div>
                     </div>
                 </div>
-            </el-card>
+            </a-card>
         </div>
         <div class="person_body">
-            <div class="person_body_left" :class="menuFixed == true ? 'isFixed' : ''">
-                <el-card class="box-card" :body-style="{ padding: '0px' }">
-                    <div slot="header" class="clearfix">
-                        <span class="person_body_list" style="border-bottom: none">个人中心</span>
-                    </div>
-                    <el-menu router active-text-color="#00c3ff" class="el-menu-vertical-demo">
-                        <el-menu-item index="info" route="/self/mymusic">
-                            <i class="el-icon-user"></i>
-                            <span slot="title">我的音乐</span>
-                        </el-menu-item>
-                        <el-menu-item index="myarticle" route="/self/mycomments">
-                            <i class="el-icon-edit-outline"></i>
-                            <span slot="title">我的评论</span>
-                        </el-menu-item>
-                        <el-menu-item index="mycollect" route="/self/mycollect">
-                            <i class="el-icon-document"></i>
-                            <span slot="title">我的收藏</span>
-                        </el-menu-item>
-                        <el-menu-item index="mylike" route="/self/mylike">
-                            <i class="el-icon-document"></i>
-                            <span slot="title">我赞过的</span>
-                        </el-menu-item>
-                    </el-menu>
-                </el-card>
+            <div class="person_body_left">
+                <a-card title="个人中心" class="person_body_left-card">
+                    <a-menu class="a-menu-vertical-demo" v-model:selectedKeys="selectedKeys" @click="handleClick">
+                        <a-menu-item key="1">
+                            个人信息
+                        </a-menu-item>
+                    </a-menu>
+                </a-card>
             </div>
             <div class="person_body_right">
                 <router-view></router-view>
@@ -92,281 +52,253 @@
     </div>
 </template>
 
-<script>
-import MyHeader from '@/components/MyHeader.vue';
-import axios from 'axios';
-import qs from 'qs';
+<script lang="ts">
+import SinglePicUpload from '@/components/upload/SinglePicUpload.vue';
+import { useUserStore } from '@/stores/user';
+import { fileToBlob } from '@/utils';
+import { MenuProps, UploadFile, notification } from 'ant-design-vue';
+import { postUserInfo, uploadImgToServer } from 'live-service';
+import { ref } from 'vue';
+
 export default {
-    name: "SelfPage",
+    name: "MainProfile",
     components: {
-        MyHeader,
+        SinglePicUpload
     },
-    data() {
-        return {
-            menuFixed: false,
-            fanCounts: 0,
-            followCounts: 0,
-            goodCounts: 0,
-            fileList: false,
-            dialogFormVisible: false,
-            form: {
-                oldPass: "",
-                newPass: "",
-            },
-            formLabelWidth: '120px',
-            profilesrc: "https://61.139.65.134:61956/user_head/" + this.$cookies.get("head"),
-            myHeader: { 'Authorization': 'jwt ' + this.$cookies.get('token') },
+    setup() {
+        const userStore = useUserStore();
+        const userInfo = userStore.user;
+
+        const fanCounts = ref(0);
+        const followCounts = ref(0);
+        const goodCounts = ref(0);
+
+        const selectedKeys = ref<string[]>(['1']);
+
+        const handleClick: MenuProps['onClick'] = e => {
+            console.log('click', e);
         };
-    },
-    mounted() {
-        window.scrollTo(0, 0);
-        this.$refs.selfHeader.change(5);
-        document.querySelector('body').setAttribute('style', 'display: block;');
-        window.addEventListener('scroll', this.handleScroll);
-    },
-    beforeDestroy() {
-        document.querySelector('body').setAttribute('style', 'display: flex;');
-        window.removeEventListener('scroll', this.handleScroll);
-    },
-    methods: {
-        handleScroll() {
-            var scrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop
-            var offsetTop = document.querySelector('.person_body_left').offsetTop + 190
-            // console.log(scrollTop) //滑动的长度
-            // console.log(offsetTop);
-            if (scrollTop > offsetTop) {
-                this.menuFixed = true
-                // console.log("页面高度大于执行操作")
-            } else {
-                this.menuFixed = false
-                // console.log("页面高度小于执行操作")
+
+        const avatarFile = ref<UploadFile>(
+            {
+                uid: '-1',
+                name: userInfo?.name || '',
+                status: 'done',
+                url: userInfo?.avatar || 'http://localhost:3000/imgs/avatar/0.png',
             }
-        },
-        alter() {
-            this.dialogFormVisible = false;
-            axios.post("/modify_password/", qs.stringify({
-                email: this.$store.state.email,
-                password: this.form.oldPass,
-                newPassword: this.form.newPass,
-            })).then(
-                response => {
-                    // console.log(response);
-                    if (response.data.status === true) {
-                        this.$message({
-                            message: '修改成功',
-                            type: 'success',
-                        });
-                    } else {
-                        this.$message.error('修改失败');
-                        return false;
-                    }
+        );
+
+        const onUpload = async (file: any) => {
+            const blob = await fileToBlob(file.file);
+            const url = await uploadImgToServer(blob, 'avatar')
+            if (url) {
+                const arr = url.replace('public', '').split('/')
+                const filename = arr[arr.length - 1]
+                const finalUrl = `http://localhost:3000/imgs/avatar/${filename}`
+
+                userStore.setUser({
+                    avatar: finalUrl
                 })
-        },
-        handleError(err, file, fileList) {
-            console.log(err);
-            console.log(file);
-            console.log(fileList);
-        },
-        handleSuccess(response) {
-            console.log(response);
-            this.$refs.myUpload.clearFiles();
-            this.$cookies.set("head", response.head);
-            this.$store.dispatch("changehead", response.head);
-            this.profilesrc = this.profilesrc.split("?")[0] + "?" + Math.random();
-            this.$bus.$emit("picChange", this.profilesrc);
-            console.log(this.profilesrc);
-        },
-    },
+                avatarFile.value.url = finalUrl
+                avatarFile.value.status = 'done'
+                file.onSuccess()
+                const res = await postUserInfo(userInfo?.id!, {
+                    avatar: finalUrl
+                })
+                if (res) {
+                    notification.success({
+                        message: '头像上传成功',
+                        description: '头像上传成功',
+                    })
+                } else {
+                    notification.error({
+                        message: '头像上传失败',
+                        description: '头像上传失败',
+                    })
+                    file.onError()
+                }
+            } else {
+                notification.error({
+                    message: '头像上传失败',
+                    description: '头像上传失败',
+                })
+                file.onError()
+            }
+        }
+
+        return {
+            userInfo,
+            avatarFile,
+            onUpload,
+            fanCounts,
+            followCounts,
+            goodCounts,
+            selectedKeys,
+            handleClick
+        }
+    }
 }
 </script>
 
-<style lang="scss" scoped>
-.box {
+<style lang="scss">
+.main-profile-box {
     position: relative;
     display: flex;
+    flex-direction: column;
+    gap: var(--row-gap);
     width: 100%;
     height: 100%;
-    background-color: #f4f4f4;
-}
+    padding-bottom: var(--padding);
 
-.me-video-player {
-    background-color: transparent;
-    width: 100%;
-    height: 100%;
-    object-fit: fill;
-    display: block;
-    position: fixed;
-    left: 0;
-    z-index: 0;
-    top: 0;
-}
+    .PersonTop {
+        display: flex;
+        justify-content: center;
+        width: 100%;
+        height: 160px;
+        padding-top: var(--padding);
+        border-radius: 5px;
 
-.PersonTop {
-    display: flex;
-    justify-content: center;
-    width: 100%;
-    height: 160px;
-    padding-top: 20px;
-    // background-color: #;
-    margin-top: 30px;
-    position: absolute;
-    /* left: 50%; */
-    /* transform: translateX(-50%); */
-    border-radius: 5px;
-}
+        .cardtop {
+            width: 100%;
+            border-radius: 15px;
 
-.cardtop {
-    width: 82%;
-    border-radius: 15px;
-}
+            .ant-card-body {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: var(--row-gap);
+                height: 100%;
 
-.PersonTop /deep/ .el-card__body {
-    display: flex;
-    align-items: center;
-    flex-direction: row;
-    padding: 0;
-    height: 100%;
-}
+                .PersonTop_img {
+                    aspect-ratio: 1 / 1;
+                    height: 100%;
 
-.PersonTop_img {
-    width: 9.6%;
-    height: 86%;
-    background-color: #8c939d;
-    margin-left: 20px;
-    overflow: hidden;
-    border-radius: 20px;
-}
+                    .main-profile-avatar {
+                        width: 100%;
+                        height: 100%;
+                        border-radius: 20px;
 
-.PersonTop_img .profileimg {
-    width: 100%;
-    height: 100%;
-    border-radius: 20px;
-}
+                        .ant-upload-list {
+                            height: 100%;
+                            width: 100%;
 
-.PersonTop_text {
-    display: flex;
-    align-items: center;
-    margin-left: 2%;
-    height: 100%;
-    width: 80%;
-}
+                            .ant-upload-list-item-container {
+                                height: 100% !important;
+                                width: 100% !important;
+                            }
 
-.user_text {
-    width: 60%;
-    height: 80%;
-    line-height: 30px;
-}
+                            .ant-upload-select {
+                                height: 100% !important;
+                                width: 100% !important;
+                            }
+                        }
+                    }
+                }
 
-.user_name {
-    font-weight: bold;
-    text-indent: 2em;
-}
+                .PersonTop_text {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    padding-right: var(--padding-xl);
+                    height: 100%;
+                    flex: 1;
 
-.user_anniu {
-    margin: 4px;
-}
+                    .user_text {
+                        width: 30%;
+                        padding-left: var(--padding);
 
-.el-icon-edit {
-    width: auto !important;
-}
+                        .user_name {
+                            font-weight: bold;
+                        }
 
-.user_num {
-    width: 40%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-}
+                        .user_email {}
 
-.user_num>div {
-    text-align: center;
-    border-right: 1px dotted #999;
-    box-sizing: border-box;
-    width: 80px;
-    height: 40px;
-    line-height: 20px;
-}
+                        .user_brief {
+                            overflow: hidden;
+                        }
+                    }
 
-.num_text {
-    color: #999;
-}
+                    .user_num {
+                        width: 40%;
+                        height: 100%;
+                        display: flex;
+                        align-items: center;
+                        justify-content: flex-end;
 
-.num_number {
-    font-size: 20px;
-    color: #333;
-}
+                        &>div {
+                            text-align: center;
+                            border-right: 1px dotted #999;
+                            box-sizing: border-box;
+                            width: 80px;
+                            height: 40px;
+                            line-height: 20px;
 
-.el-menu-item>span {
-    font-size: 16px;
-    color: #999;
-}
+                            .num_text {
+                                color: #999;
+                            }
 
-/*下面部分样式*/
-.person_body {
-    display: flex;
-    position: absolute;
-    width: 100%;
-    margin-top: 15%;
-    /* left: 50%;
-    transform: translateX(-50%); */
-    border-radius: 5px;
-}
+                            .num_number {
+                                font-size: 20px;
+                                color: #333;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 
-.person_body_left {
-    transition: 0.5s;
-    width: 25%;
-    height: 410px;
-    border-radius: 5px;
-    margin-left: 9%;
-    margin-right: 3%;
-    text-align: center;
-}
+    /*下面部分样式*/
+    .person_body {
+        display: flex;
+        flex: 1;
+        width: 100%;
+        border-radius: 5px;
+        justify-content: space-between;
+        gap: var(--row-gap);
 
-.person_body_list {
-    width: 100%;
-    height: 50px;
-    margin-top: 25px;
-    font-size: 22px;
-    border-bottom: 1px solid #f0f0f0;
-    background-image: -webkit-linear-gradient(left,
-            rgb(42, 134, 141),
-            #e9e625dc 20%,
-            #3498db 40%,
-            #e74c3c 60%,
-            #09ff009a 80%,
-            rgba(82, 196, 204, 0.281) 100%);
-    -webkit-text-fill-color: transparent;
-    -webkit-background-clip: text;
-    -webkit-background-size: 200% 100%;
-    -webkit-animation: masked-animation 4s linear infinite;
-}
+        .person_body_left {
+            transition: 0.5s;
+            flex: 0 0 25%;
+            height: 100%;
+            border-radius: 5px;
+            text-align: center;
 
-.el-menu-item {
-    margin-top: 22px;
-}
+            .person_body_left-card {
+                height: 100%;
+                padding: var(--padding);
 
-.person_body_right {
-    position: absolute;
-    margin-left: 37%;
-    width: 54%;
-    /* height: 500px; */
-    border-radius: 5px;
-    // background-color: white;
-}
+                .ant-card-head-title {
+                    width: 100%;
+                    font-size: 22px;
+                    font-family: myFont;
+                    background-image: -webkit-linear-gradient(left,
+                            rgb(42, 134, 141),
+                            #e9e625dc 20%,
+                            #3498db 40%,
+                            #e74c3c 60%,
+                            #09ff009a 80%,
+                            rgba(82, 196, 204, 0.281) 100%);
+                    -webkit-text-fill-color: transparent;
+                    -webkit-background-clip: text;
+                    -webkit-background-size: 200% 100%;
+                    -webkit-animation: masked-animation 4s linear infinite;
+                }
 
-.box-card {
-    height: 405px;
-}
+                .ant-card-body {
+                    .ant-menu {
+                        border-inline-end: none;
+                    }
+                }
+            }
+        }
 
-/*ui样式*/
-.el-button {
-    width: 84px;
-}
-
-.isFixed {
-    position: fixed;
-    top: 40px;
-    left: 0;
-    z-index: 999;
+        .person_body_right {
+            flex: 1;
+            height: 100%;
+            overflow: auto;
+            border-radius: 5px;
+        }
+    }
 }
 </style>

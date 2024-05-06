@@ -1,11 +1,25 @@
-<script setup lang="ts">
-import LiveBox from '@/components/live/LiveBox.vue';
-import router from '@/router';
+<script lang="ts">
+import LiveWatcherBox from '@/components/live/LiveWatcherBox.vue';
+
+export default {
+    components: {
+        LiveWatcherBox
+    },
+    props: {
+        room: {
+            type: String,
+        },
+    },
+    setup(props) {
+        console.log(props.room);
+    }
+}
 </script>
 
 <template>
     <div class="live-watcher">
-        <LiveBox :room="router.currentRoute.value.params.room"></LiveBox>
+        <LiveWatcherBox :room="room">
+        </LiveWatcherBox>
     </div>
 </template>
 

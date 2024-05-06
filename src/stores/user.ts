@@ -19,6 +19,8 @@ export const useUserStore = defineStore('user', () => {
         user.value![key] = userInfo[key as keyof UserInfo]
       })
     }
+
+    localStorage.setItem('userInfo', JSON.stringify(user.value))
   }
 
   const setLogin = (loginState: boolean) => {

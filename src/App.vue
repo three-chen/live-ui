@@ -1,26 +1,41 @@
-<script setup lang="ts">
+<script lang="ts">
 import MyHeaderVue from '@/components/header/MyHeader.vue';
+import zhCN from 'ant-design-vue/es/locale/zh_CN';
 import { RouterView } from 'vue-router';
 import { useUserStore } from './stores/user';
 
-const userStore = useUserStore();
-const userInfo = localStorage.getItem('userInfo');
+export default {
+  name: 'App',
+  components: {
+    MyHeaderVue
+  },
+  setup() {
+    const userStore = useUserStore();
+    const userInfo = localStorage.getItem('userInfo');
 
-if (userInfo) {
-  userStore.setLogin(true)
-  userStore.setUser(JSON.parse(userInfo));
-}
-
+    if (userInfo) {
+      const user = JSON.parse(userInfo)
+      console.log("app.vue", user)
+      if (user.id) {
+        userStore.setLogin(true)
+        userStore.setUser(user);
+      }
+    }
+    return { zhCN };
+  },
+};
 </script>
 
 <template>
-  <div class="box">
-    <MyHeaderVue></MyHeaderVue>
+  <a-config-provider :locale="zhCN">
+    <div class="box">
+      <MyHeaderVue></MyHeaderVue>
 
-    <div class="main-container">
-      <RouterView />
+      <div class="main-container">
+        <RouterView />
+      </div>
     </div>
-  </div>
+  </a-config-provider>
 </template>
 
 <style lang="scss" scoped>

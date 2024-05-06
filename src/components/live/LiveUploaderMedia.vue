@@ -1,10 +1,14 @@
 <script lang="ts">
+import { askDecodeProtocol, askEncodeProtocol, createLive, stopLive } from 'live-service';
 import { DecodeProtocol, DecodeProtocolEnum, Decoder, EncodeProtocol, EncodeProtocolEnum, Encoder } from 'media-framework';
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 
 import LiveMaskButton from '@/components/button/LiveMaskButton.vue';
 import LiveUploaderFooter from './live-uploader/LiveUploaderFooter.vue';
 import LiveUploaderHeader from './live-uploader/LiveUploaderHeader.vue';
+
+import { useLiveStore } from '@/stores/live';
+import { useUserStore } from '@/stores/user';
 
 enum StreamStatus {
     PREPARING = 'preparing',
@@ -28,6 +32,32 @@ export default {
         },
     },
     setup(props) {
+        const userStore = useUserStore()
+        const user = computed(() => userStore.user)
+        const liveStore = useLiveStore()
+        const live = computed(() => liveStore.live)
+        const liveViewCount = computed(() => live.value?.view_count)
+        const liveLikeCount = computed(() => live.value?.like_count)
+        // 直播开始时间 格式 yyyy-mm-dd hh:mm:ss 年-月-日 时:分:秒
+        const liveStartTime = computed(() => {
+            const startTime = new Date(live.value?.startTime || '').toLocaleString()
+            // 直播开始时间 格式 yyyy-mm-dd hh:mm:ss 年-月-日 时:分:秒
+            // 格式化时间
+            return startTime.replace('/', '-').replace('/', '-')
+
+        })
+        // 计算直播时长 格式 hh-mm-ss 时:分:秒
+        const liveProceedTime = computed(() => {
+            const startTime = new Date(live.value?.startTime || '')
+            const endTime = new Date(live.value?.endTime || '')
+            const diff = endTime.getTime() - startTime.getTime()
+            const hours = Math.floor(diff / (1000 * 60 * 60))
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
+            const seconds = Math.floor((diff % (1000 * 60)) / 1000)
+            console.log("liveProceedTime", hours, minutes, seconds)
+            return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+        })
+
         const supportEncodeProtocol = ref<EncodeProtocol[]>([])
         const supportDecodeProtocol = ref<DecodeProtocol[]>([])
 
@@ -37,25 +67,22 @@ export default {
         const videoElement = ref<HTMLVideoElement | undefined>(undefined)
         const status = ref<StreamStatus>(StreamStatus.PREPARING)
 
+        const modalVisible = ref<boolean>(false)
+
         const initSupportProtocol = async () => {
             supportEncodeProtocol.value = await Encoder.getSupportedProtocols()
             supportDecodeProtocol.value = await Decoder.getSupportedProtocols()
             console.log("supportDecodeProtocol", supportDecodeProtocol)
             console.log("supportEncodeProtocol", supportEncodeProtocol)
         }
-        const askProtocol = async () => {
-            // const encodeProtocol = await Encoder.getProtocol()
-            // const decodeProtocol = await Decoder.getProtocol()
-            // console.log("encodeProtocol", encodeProtocol)
-            // console.log("decodeProtocol", decodeProtocol)
-        }
+
         const init = async () => {
             await initSupportProtocol()
         }
         init()
 
         const ready = computed(() => {
-            if (props.room && decodeProtocol && videoElement.value) {
+            if (props.room && videoElement.value) {
                 changeStatus(StreamStatus.READY)
                 console.log("ready true")
                 return true
@@ -66,29 +93,36 @@ export default {
 
         watch(
             () => ready.value,
-            (newVal) => {
+            async (newVal) => {
                 console.log("newVal", newVal)
                 if (newVal) {
-                    Encoder.init({
-                        room: props.room!,
-                        protocol: encodeProtocol.value,
-                    })
-                    Decoder.init({
-                        room: props.room!,
-                        protocol: decodeProtocol.value,
-                        videoElement: videoElement.value,
-                    })
+                    await initEncode()
                 }
             }
         )
 
-        onMounted(() => {
-            console.log(videoElement.value)
-        })
+        const uploaderCreateLive = async () => {
+            const res = await createLive(
+                {
+                    uploaderId: user.value?.id!,
+                    encodeProtocol: encodeProtocol.value,
+                    liveTitle: live.value?.liveTitle,
+                    cover_picture_url: live.value?.cover_picture_url,
+                    typeId: live.value?.typeId
+                })
+
+            if (res.success && res.data) {
+                console.log("createLive success", res.data)
+                liveStore.setLive(res.data)
+                liveStore.setCreate(true)
+            }
+        }
 
         const captureScreen = async () => {
+            await uploaderCreateLive()
             await Encoder.encoder?.desktopStreamSpawn()
             changeStatus(StreamStatus.STARTED)
+            await initDecode()
             if (decodeProtocol.value === DecodeProtocolEnum.HLS) {
                 setTimeout(() => {
                     console.log("loadAndPlay")
@@ -100,8 +134,10 @@ export default {
         }
 
         const openCamera = async () => {
+            await uploaderCreateLive()
             await Encoder.encoder?.cameraStreamSpawn()
             changeStatus(StreamStatus.STARTED)
+            await initDecode()
             if (decodeProtocol.value === DecodeProtocolEnum.HLS) {
                 setTimeout(() => {
                     console.log("loadAndPlay")
@@ -118,10 +154,54 @@ export default {
 
         const stopStream = async () => {
             if (status.value === StreamStatus.STARTED) {
-                console.log("stopStream")
-                // await Encoder.encoder?.stopStream()
-                // await Decoder.decoder?.stopStream()
+                await Encoder.destroy()
+                await processStopLive()
                 if (ready.value === true) changeStatus(StreamStatus.READY)
+            }
+        }
+
+        const processStopLive = async () => {
+            const res = await stopLive(live.value!.liveId!)
+            if (res.success && res.data) {
+                liveStore.setLive(res.data)
+                liveStore.setCreate(false)
+                modalVisible.value = true
+                console.log("stopLive success")
+            }
+        }
+
+        const initEncode = async () => {
+            const res = await askEncodeProtocol(
+                {
+                    id: user.value?.id!,
+                    supportProtocols: supportEncodeProtocol.value
+                }
+            )
+            if (res.success && res.data) {
+                encodeProtocol.value = res.data
+
+                Encoder.init({
+                    room: props.room!,
+                    protocol: encodeProtocol.value,
+                })
+            }
+        }
+
+        const initDecode = async () => {
+            const res = await askDecodeProtocol(
+                {
+                    id: live.value?.liveId!,
+                    supportProtocols: supportDecodeProtocol.value
+                }
+            )
+            if (res.success && res.data) {
+                decodeProtocol.value = res.data
+
+                Decoder.init({
+                    room: props.room!,
+                    protocol: decodeProtocol.value,
+                    videoElement: videoElement.value,
+                })
             }
         }
 
@@ -131,7 +211,12 @@ export default {
             videoElement,
             captureScreen,
             openCamera,
-            stopStream
+            stopStream,
+            modalVisible,
+            liveViewCount,
+            liveLikeCount,
+            liveStartTime,
+            liveProceedTime
         }
     }
 }
@@ -167,6 +252,16 @@ export default {
         </div>
 
         <LiveUploaderFooter :status="status" :stopStream="stopStream" />
+
+
+        <a-modal v-model:open="modalVisible" centered @ok="modalVisible = false">
+            <a-descriptions title="直播数据" bordered>
+                <a-descriptions-item label="观看人数" :span="2">{{ liveViewCount }}</a-descriptions-item>
+                <a-descriptions-item label="点赞人数" :span="2">{{ liveLikeCount }}</a-descriptions-item>
+                <a-descriptions-item label="开始时间" :span="2">{{ liveStartTime }}</a-descriptions-item>
+                <a-descriptions-item label="持续时长" :span="2">{{ liveProceedTime }}</a-descriptions-item>
+            </a-descriptions>
+        </a-modal>
     </div>
 </template>
 
@@ -209,6 +304,7 @@ export default {
         .video-container {
             width: 100%;
             height: 100%;
+            display: flex;
             background-color: hsla(0, 0%, 9%, .8);
 
             .video {

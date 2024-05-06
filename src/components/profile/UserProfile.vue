@@ -23,6 +23,10 @@ export default {
     props: {
         userInfo: {
             type: Object as PropType<UserInfo>
+        },
+        // 退出登录
+        quitLogin: {
+            type: Function as PropType<() => void>
         }
     },
     setup(props) {
@@ -30,10 +34,13 @@ export default {
         const onClick: MenuProps['onClick'] = ({ key }) => {
             switch (key) {
                 case '1':
-
+                    router.push('/profile')
                     break;
                 case '2':
-
+                    if (props.quitLogin) {
+                        props.quitLogin()
+                        router.push('/auth/login')
+                    }
                     break;
 
                 default:
@@ -41,12 +48,6 @@ export default {
             }
             console.log(`Click on item ${key}`);
         };
-
-        const gotoProfile = () => {
-            router.push('/profile')
-        }
-
-        console.log(props.userInfo)
 
         return {
             onClick

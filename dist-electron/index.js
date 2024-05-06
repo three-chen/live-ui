@@ -35,13 +35,16 @@ const commandIPCListen = (mainW) => {
     const ChildProcess = child_process.spawn(command, args, {
       windowsVerbatimArguments: true
     });
-    setTimeout(() => {
-      console.log("Closing ffmpeg process...");
-      ChildProcess.kill("SIGINT");
-    }, 3e4);
     if (ChildProcess.pid)
       childProcessMap.set(ChildProcess.pid, ChildProcess);
     console.log("ChildProcess pid", ChildProcess.pid);
+  });
+  electron.ipcMain.on("ffmpegSpawnKill", (event, arg) => {
+    childProcessMap.forEach((childProcess, pid) => {
+      console.log("Closing ffmpeg process...");
+      childProcess.kill("SIGINT");
+      childProcessMap.delete(pid);
+    });
   });
   electron.ipcMain.on("main-ffmpeg-protocols", (event, arg) => {
     child_process.exec(arg, (error, stdout, stderr) => {

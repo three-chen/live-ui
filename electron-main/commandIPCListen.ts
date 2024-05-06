@@ -29,12 +29,21 @@ export const commandIPCListen = (mainW: Electron.BrowserWindow) => {
     const ChildProcess = spawn(command, args, {
       windowsVerbatimArguments: true
     })
-    setTimeout(() => {
-      console.log('Closing ffmpeg process...')
-      ChildProcess.kill('SIGINT') // 发送 SIGINT 信号以关闭进程
-    }, 30000)
     if (ChildProcess.pid) childProcessMap.set(ChildProcess.pid, ChildProcess)
     console.log('ChildProcess pid', ChildProcess.pid)
+  })
+
+  ipcMain.on('ffmpegSpawnKill', (event, arg) => {
+    // const ChildProcess = childProcessMap.get(arg)
+    // if (ChildProcess) {
+    //   console.log('Closing ffmpeg process...')
+    //   ChildProcess.kill('SIGINT') // 发送 SIGINT 信号以关闭进程
+    // }
+    childProcessMap.forEach((childProcess, pid) => {
+      console.log('Closing ffmpeg process...')
+      childProcess.kill('SIGINT') // 发送 SIGINT 信号以关闭进程
+      childProcessMap.delete(pid)
+    })
   })
 
   // 查询 ffmpeg支持的编码协议

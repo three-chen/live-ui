@@ -21,3 +21,15 @@ export function g4(): string {
   }
   return g
 }
+
+export async function fileToBlob(file: any): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => {
+      const blob = new Blob([reader.result!], { type: file.type })
+      resolve(blob)
+    }
+    reader.onerror = reject
+    reader.readAsArrayBuffer(file)
+  })
+}
