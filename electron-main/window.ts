@@ -37,7 +37,7 @@ interface IWindowOpt {
     contextIsolation: boolean //上下文隔离
     nodeIntegration: boolean //启用Node集成（是否完整的支持 node）
     webSecurity: boolean
-    preload: string
+    preload?: string
   }
 }
 
@@ -97,8 +97,7 @@ export class Window {
       webPreferences: {
         contextIsolation: false, //上下文隔离
         nodeIntegration: true, //启用Node集成（是否完整的支持 node）
-        webSecurity: false,
-        preload: path.join(__dirname, '../electron-preload/index.js')
+        webSecurity: false
       }
     }
   }
@@ -166,17 +165,19 @@ export class Window {
     // 打开网址（加载页面）
     let winURL
     if (app.isPackaged) {
-      winURL = args.route ? path.join(__dirname, `../../dist/index.html${args.route}`) : path.join(__dirname, `../../dist/index.html`)
+      win.loadFile(path.join(__dirname, '../dist/index.html'))
     } else {
       winURL = args.route ? `${process.env['VITE_DEV_SERVER_URL']}${args.route}?winId=${args.id}` : `${process.env['VITE_DEV_SERVER_URL']}?winId=${args.id}`
-    }
-    console.log('new window url:', winURL)
-    console.log('env', process.env.NODE_ENV)
-    if (process.env.NODE_ENV === 'production') {
-      win.loadURL(path.join(__dirname, '../dist/index.html'))
-    } else {
       win.loadURL(winURL)
     }
+    // console.log('new window url:', winURL)
+    // console.log('env', process.env.NODE_ENV)
+    // win.loadFile(path.join(__dirname, '../index.html'))
+    // if (process.env.NODE_ENV === 'production') {
+    //   win.loadFile(path.join(__dirname, '../index.html'))
+    // } else {
+    //   win.loadURL(winURL)
+    // }
 
     win.once('ready-to-show', () => {
       win.show()

@@ -10,7 +10,7 @@ class UlButton extends PrototypeButton {
       const editor = getEditor()
       if (editor) {
         this.setSelection(editor)
-        document.execCommand('insertUnorderedList', false, null)
+        document.execCommand('insertUnorderedList', false, undefined)
       }
     })
   }

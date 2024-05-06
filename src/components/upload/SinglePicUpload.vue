@@ -44,7 +44,7 @@ export default {
             previewVisible.value = false;
             previewTitle.value = '';
         };
-        const handlePreview = async (file: UploadProps['fileList'][number]) => {
+        const handlePreview = async (file: any) => {
             if (!file.url && !file.preview) {
                 file.preview = (await getBase64(file.originFileObj)) as string;
             }

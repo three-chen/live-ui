@@ -24,31 +24,30 @@ export default class PrototypeButton {
    * @param onClick 点击事件
    */
   constructor(config: Config, icon: string, onClick: () => void) {
-    const that = this
-    that._el = document.createElement('button')
-    that._id = config.id
-    that._label = config.label
-    that._icon = icon
-    that.isActivate = false
-    that._protobtnClick = onClick
+    this._el = document.createElement('button')
+    this._id = config.id
+    this._label = config.label
+    this._icon = icon
+    this.isActivate = false
+    this._protobtnClick = onClick
 
-    that._protobtnMouseEnter = () => {
+    this._protobtnMouseEnter = () => {
       // toolbar-button
-      that._el.classList.add('richText-toolbar-button-hover')
+      this._el.classList.add('richText-toolbar-button-hover')
 
       // tooltip
-      // that._el.children[0].classList.remove('richText-toolbar-button-tooltip-inactive')
-      // that._el.children[0].classList.add('richText-toolbar-button-tooltip-active')
+      // this._el.children[0].classList.remove('richText-toolbar-button-tooltip-inactive')
+      // this._el.children[0].classList.add('richText-toolbar-button-tooltip-active')
     }
-    that._protobtnMouseLeave = () => {
+    this._protobtnMouseLeave = () => {
       // toolbar-button
-      that._el.classList.remove('richText-toolbar-button-hover')
+      this._el.classList.remove('richText-toolbar-button-hover')
 
       // tooltip
-      // that._el.children[0].classList.remove('richText-toolbar-button-tooltip-active')
-      // that._el.children[0].classList.add('richText-toolbar-button-tooltip-inactive')
+      // this._el.children[0].classList.remove('richText-toolbar-button-tooltip-active')
+      // this._el.children[0].classList.add('richText-toolbar-button-tooltip-inactive')
     }
-    that.init(that._el, config.type)
+    this.init(this._el, config.type)
   }
 
   public init(el: HTMLButtonElement, type: string) {

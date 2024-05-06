@@ -34,8 +34,8 @@ class ImageButton extends PrototypeButton {
     const that = this
 
     const reader = new FileReader()
-    reader.onload = (e) => {
-      const imageSrc = e.target.result as string
+    reader.onload = e => {
+      const imageSrc = e.target?.result as string
       // console.log(imageSrc);
       that.showImage(imageSrc)
     }

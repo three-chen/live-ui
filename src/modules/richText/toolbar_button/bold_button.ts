@@ -10,7 +10,7 @@ class BoldButton extends PrototypeButton {
       const editor = getEditor()
       if (editor) {
         this.setSelection(editor)
-        document.execCommand('bold', false, null)
+        document.execCommand('bold', false, undefined)
       }
     })
   }
