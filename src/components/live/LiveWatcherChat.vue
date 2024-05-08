@@ -1,47 +1,101 @@
-<script setup lang="ts">
-// import { useRTCStore } from '@/stores/rtc';
-// import { onMounted, ref } from 'vue';
+<script lang="ts">
+import { Chat, RichText } from '@/modules';
+import { useBulletsStore } from '@/stores/bulletScreen';
+import { useChatsStore } from '@/stores/chat';
+import { useLiveStore } from '@/stores/live';
+import { useUserStore } from '@/stores/user';
+import { UserInfoR } from 'live-service';
+import { Decoder } from 'media-framework';
+import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue';
+import LiveChatMessage from './live-chat-message/LiveChatMessage.vue';
 
-// import RichText from '@/modules/richText/index';
+export default {
+    name: 'LiveUploaderChat',
+    components: {
+        LiveChatMessage
+    },
+    props: {
+        room: {
+            type: String
+        }
+    },
+    setup(props) {
+        const userStore = useUserStore();
+        const user = computed(() => userStore.user);
+        const isLogin = computed(() => userStore.isLogin);
+        const chatsStore = useChatsStore();
+        const chats = computed(() => chatsStore.chats);
+        const bulletsStore = useBulletsStore()
+        const liveStore = useLiveStore();
 
-// const chatBox = ref(null);
-// const richTextBox = ref(null);
-// const rtcStroe = useRTCStore();
+        const chatBox = ref<HTMLElement | null>(null);
+        const richTextBox = ref<HTMLElement | null>(null);
+        const richText = new RichText();
 
-// const richText = new RichText();
+        const sendMessage = async () => {
+            const message = await richText.getHTML();
 
-// onMounted(() => {
-//     rtcStroe.setChatBoxElement(chatBox.value);
-//     richText.mount(richTextBox.value!);
+            console.log("send message", message);
+            Chat.sendMessage(message);
+            richText.clear();
 
-// })
+        }
 
-async function sendMessage() {
-    // const message = await richText.getHTML();
-    // const liveRTC = rtcStroe.liveRTC;
+        const onReceiveMessage = (user: UserInfoR, message: string) => {
+            console.log("receive message");
+            chatsStore.pushChats({ user, message })
+            bulletsStore.pushBullets({ user, message })
+            nextTick(() => {
+                chatBox.value!.scrollTop = chatBox.value!.scrollHeight;
+            })
+        }
 
-    // liveRTC!.sendMessage(message);
-    // richText.clear();
+        const onStopLive = async () => {
+            console.log("stop live");
+            await Decoder.destroy()
+            liveStore.setEnded(true)
+        }
 
+        onMounted(() => {
+            richText.mount(richTextBox.value!);
+            console.log('chat mounted', props.room, user);
+            Chat.init(props.room!, onReceiveMessage, onStopLive, user.value?.id);
+            Chat.connect();
+        })
+
+        onUnmounted(async () => {
+            chatsStore.clearChats();
+            bulletsStore.clearAllBullets();
+            await Chat.destroy()
+        })
+
+        return {
+            chats,
+            isLogin,
+            sendMessage,
+            chatBox,
+            richTextBox
+        }
+    }
 }
 </script>
 
 <template>
     <div class="chatContainer">
-        <div class="chatBox" ref="chatBox"></div>
+        <div class="chatBox" ref="chatBox">
+            <LiveChatMessage v-for="chat in chats" :key="chat.user.id" :user="chat.user" :message="chat.message">
+            </LiveChatMessage>
+        </div>
         <div class="richTextBox" ref="richTextBox"></div>
-        <div class="sendMessage" @click="sendMessage()">发送信息</div>
+        <div class="sendMessage">
+            <a-button type="primary" @click="sendMessage()" :disabled="!isLogin">发送信息</a-button>
+        </div>
     </div>
 </template>
 
 <style lang="scss" scoped>
 .chatContainer {
-    flex: 0 0 30%;
-    min-width: 300px;
-    min-height: 480px;
-    height: 100%;
     position: relative;
-    padding: 10px;
     border-radius: 10px;
     box-shadow: 0px 0px 10px #999;
     display: flex;
@@ -52,9 +106,10 @@ async function sendMessage() {
     .chatBox {
         width: 100%;
         height: 60%;
-        // /* background-color: #F1F2F3; */
+        padding: var(--padding-sm);
         overflow-y: auto;
         overflow-x: hidden;
+
 
         :deep(ul) {
             margin-left: 1rem;
@@ -69,19 +124,14 @@ async function sendMessage() {
         width: 100%;
         height: 30%;
         overflow-y: auto;
+        box-shadow: 0px -6px 8px 4px rgba(0, 0, 0, 0.09)
     }
 
     .sendMessage {
-        position: absolute;
-        bottom: 0;
-        right: 0;
-        width: 40%;
-        height: 10%;
-        cursor: pointer;
-        background-color: skyblue;
+        width: 100%;
         display: flex;
         align-items: center;
-        justify-content: center;
+        justify-content: flex-end;
     }
 }
 </style>

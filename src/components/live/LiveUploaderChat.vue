@@ -1,10 +1,11 @@
 <script lang="ts">
 import { Chat, RichText } from '@/modules';
+import { useBulletsStore } from '@/stores/bulletScreen';
 import { useChatsStore } from '@/stores/chat';
 import { useUserStore } from '@/stores/user';
 import { UserInfoR } from 'live-service';
 import { Decoder } from 'media-framework';
-import { computed, nextTick, onMounted, ref } from 'vue';
+import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue';
 import LiveChatMessage from './live-chat-message/LiveChatMessage.vue';
 
 export default {
@@ -23,6 +24,7 @@ export default {
         const isLogin = computed(() => userStore.isLogin);
         const chatsStore = useChatsStore();
         const chats = computed(() => chatsStore.chats);
+        const bulletsStore = useBulletsStore()
 
         const chatBox = ref<HTMLElement | null>(null);
         const richTextBox = ref<HTMLElement | null>(null);
@@ -40,6 +42,7 @@ export default {
         const onReceiveMessage = (user: UserInfoR, message: string) => {
             console.log("receive message");
             chatsStore.pushChats({ user, message })
+            bulletsStore.pushBullets({ user, message })
             nextTick(() => {
                 chatBox.value!.scrollTop = chatBox.value!.scrollHeight;
             })
@@ -57,6 +60,11 @@ export default {
             Chat.connect();
         })
 
+        onUnmounted(async () => {
+            chatsStore.clearChats();
+            bulletsStore.clearAllBullets();
+            await Chat.destroy()
+        })
 
         return {
             chats,

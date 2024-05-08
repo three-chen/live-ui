@@ -45,7 +45,7 @@ export default defineComponent({
     <div class="main-hall-group">
         <a-row v-if="!isEmpty" :gutter="24" style="max-width: 100%;row-gap: 16px;">
             <a-col :span="6" v-for="(live, index) in finalData" :key="live.roomId">
-                <router-link :to="'/live/watcher/' + `${live.roomId}`" class="live-router">
+                <router-link :to="`/live/watcher/${live.roomId}`" class="live-router">
                     <a-card hoverable>
                         <template #cover>
                             <img alt="cover_pic" :src="live.cover_picture_url" />
@@ -88,6 +88,13 @@ export default defineComponent({
 
     .live-router {
         color: var(--text-color);
+    }
+
+    .ant-card-cover {
+        aspect-ratio: 7 / 4;
+        display: flex;
+        overflow: hidden;
+        align-items: center;
     }
 
     .ant-card-body {

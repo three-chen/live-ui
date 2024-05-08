@@ -11,7 +11,7 @@ export default {
         },
     },
     setup(props) {
-        console.log(props.room);
+        console.log("props room", props.room);
     }
 }
 </script>

@@ -38,7 +38,8 @@ const router = createRouter({
     {
       path: '/live/watcher/:room',
       name: 'liveWatcher',
-      component: () => import('@/views/LiveWatcher.vue')
+      component: () => import('@/views/LiveWatcher.vue'),
+      props: true
     },
     {
       path: '/live/uploader/:room',

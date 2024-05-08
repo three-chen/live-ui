@@ -1,4 +1,6 @@
 <script lang="ts">
+import { ref } from 'vue';
+
 
 
 export default {
@@ -10,9 +12,14 @@ export default {
         stopStream: {
             type: Function,
         },
+        selectEncodeProtocol: {
+            type: Function,
+        }
     },
     setup() {
+        const encodeProtocol = ref('');
         return {
+            encodeProtocol
         }
     }
 }
@@ -20,6 +27,13 @@ export default {
 
 <template>
     <div class="mediaBox-footer">
+        <a-radio-group v-model:value="encodeProtocol">
+            <a-radio-button value="WEBRTC">WEBRTC</a-radio-button>
+            <a-radio-button value="SRT">SRT</a-radio-button>
+            <a-radio-button value="RTMP">RTMP</a-radio-button>
+            <a-radio-button value="HTTPFLV">HTTP-FLV</a-radio-button>
+            <a-radio-button value="HLS">HLS</a-radio-button>
+        </a-radio-group>
         <a-button :onclick="stopStream" type="primary" danger>{{ status === 'started' ? '结束直播' : '未开始直播' }}</a-button>
     </div>
 </template>

@@ -1,12 +1,14 @@
 <script lang="ts">
-import { askDecodeProtocol, askEncodeProtocol, createLive, stopLive } from 'live-service';
+import { LiveInfoR, askDecodeProtocol, askEncodeProtocol, createLive, stopLive } from 'live-service';
 import { DecodeProtocol, DecodeProtocolEnum, Decoder, EncodeProtocol, EncodeProtocolEnum, Encoder } from 'media-framework';
-import { computed, ref, watch } from 'vue';
+import { computed, onUnmounted, ref, watch } from 'vue';
 
 import LiveMaskButton from '@/components/button/LiveMaskButton.vue';
+import LiveDanmu from './live-danmu/LiveDanmu.vue';
 import LiveUploaderFooter from './live-uploader/LiveUploaderFooter.vue';
 import LiveUploaderHeader from './live-uploader/LiveUploaderHeader.vue';
 
+import { Chat } from '@/modules';
 import { useLiveStore } from '@/stores/live';
 import { useUserStore } from '@/stores/user';
 
@@ -24,7 +26,8 @@ export default {
     components: {
         LiveUploaderHeader,
         LiveMaskButton,
-        LiveUploaderFooter
+        LiveUploaderFooter,
+        LiveDanmu
     },
     props: {
         room: {
@@ -68,6 +71,7 @@ export default {
         const status = ref<StreamStatus>(StreamStatus.PREPARING)
 
         const modalVisible = ref<boolean>(false)
+        const obsModalVisible = ref<boolean>(false)
 
         const initSupportProtocol = async () => {
             supportEncodeProtocol.value = await Encoder.getSupportedProtocols()
@@ -122,30 +126,27 @@ export default {
             await uploaderCreateLive()
             await Encoder.encoder?.desktopStreamSpawn()
             changeStatus(StreamStatus.STARTED)
-            await initDecode()
-            if (decodeProtocol.value === DecodeProtocolEnum.HLS) {
-                setTimeout(() => {
-                    console.log("loadAndPlay")
-                    Decoder.decoder?.loadAndPlay()
-                }, 10000)
-            } else {
-                Decoder.decoder?.loadAndPlay()
-            }
+            // await initDecodeAndPlay()
         }
 
         const openCamera = async () => {
             await uploaderCreateLive()
             await Encoder.encoder?.cameraStreamSpawn()
             changeStatus(StreamStatus.STARTED)
-            await initDecode()
-            if (decodeProtocol.value === DecodeProtocolEnum.HLS) {
-                setTimeout(() => {
-                    console.log("loadAndPlay")
-                    Decoder.decoder?.loadAndPlay()
-                }, 10000)
-            } else {
-                Decoder.decoder?.loadAndPlay()
-            }
+            // await initDecodeAndPlay()
+        }
+
+        const handleOBSSream = async () => {
+            Encoder.changeEncoderWithoutDestroy({ protocol: EncodeProtocolEnum.RTMP })
+            encodeProtocol.value = EncodeProtocolEnum.RTMP
+            await uploaderCreateLive()
+            changeStatus(StreamStatus.STARTED)
+            obsModalVisible.value = false
+            // await initDecodeAndPlay()
+        }
+
+        const showObsModal = () => {
+            obsModalVisible.value = true
         }
 
         const changeStatus = (newStatus: StreamStatus) => {
@@ -170,6 +171,11 @@ export default {
             }
         }
 
+        onUnmounted(async () => {
+            await stopStream()
+            await Decoder.destroy()
+        })
+
         const initEncode = async () => {
             const res = await askEncodeProtocol(
                 {
@@ -187,6 +193,17 @@ export default {
             }
         }
 
+        const initDecodeAndPlay = async () => {
+            await initDecode()
+            if (decodeProtocol.value === DecodeProtocolEnum.HLS) {
+                setTimeout(() => {
+                    console.log("loadAndPlay")
+                    Decoder.decoder?.loadAndPlay()
+                }, 10000)
+            } else {
+                Decoder.decoder?.loadAndPlay()
+            }
+        }
         const initDecode = async () => {
             const res = await askDecodeProtocol(
                 {
@@ -197,13 +214,20 @@ export default {
             if (res.success && res.data) {
                 decodeProtocol.value = res.data
 
+                const videoEl: HTMLVideoElement | null = document.querySelector('.video')
                 Decoder.init({
                     room: props.room!,
                     protocol: decodeProtocol.value,
-                    videoElement: videoElement.value,
+                    videoElement: videoEl!,
                 })
             }
         }
+        const onStartLive = async (live: LiveInfoR) => {
+            liveStore.setLive(live)
+            supportDecodeProtocol.value = await Decoder.getSupportedProtocols()
+            await initDecodeAndPlay()
+        }
+        Chat.setOnStartLive(onStartLive)
 
         return {
             status,
@@ -211,12 +235,15 @@ export default {
             videoElement,
             captureScreen,
             openCamera,
+            handleOBSSream,
             stopStream,
             modalVisible,
+            obsModalVisible,
+            showObsModal,
             liveViewCount,
             liveLikeCount,
             liveStartTime,
-            liveProceedTime
+            liveProceedTime,
         }
     }
 }
@@ -245,10 +272,19 @@ export default {
                             p-id="5432" fill="#e6e6e6"></path>
                     </svg>
                 </LiveMaskButton>
+                <LiveMaskButton text="OBS推流" :click="showObsModal">
+                    <svg t="1715108809889" class="icon" viewBox="0 0 1024 1024" version="1.1"
+                        xmlns="http://www.w3.org/2000/svg" p-id="4643" width="48" height="48">
+                        <path
+                            d="M512 1024C229.674667 1024 0 794.325333 0 512S229.674667 0 512 0s512 229.674667 512 512-229.674667 512-512 512z m0-976.682667C255.786667 47.317333 47.36 255.786667 47.36 512S255.786667 976.64 512 976.64 976.64 768.213333 976.64 512c0-256.213333-208.426667-464.682667-464.64-464.682667zM263.765333 255.573333c15.018667-72.448 64.128-137.770667 130.133334-170.496-11.477333 11.648-25.386667 20.608-36.010667 33.28-43.52 46.933333-63.146667 114.858667-51.157333 177.322667 15.146667 95.36 104.746667 173.226667 201.898666 171.861333 75.306667 3.370667 148.693333-39.978667 185.514667-105.301333 78.848 2.688 155.52 43.392 200.533333 108.714667 23.04 34.090667 41.045333 74.069333 42.282667 115.669333-14.592-55.253333-51.285333-104.362667-101.333333-132.053333a208.725333 208.725333 0 0 0-160.938667-18.133334c-66.56 19.114667-121.557333 73.514667-140.501333 140.501334-16.085333 53.333333-9.216 112.128 16.085333 160.938666-35.2 60.970667-98.773333 104.490667-167.765333 117.589334-53.077333 11.136-108.842667 2.517333-158.250667-19.797334 44.202667 12.885333 92.202667 15.146667 136.149333-0.469333a209.621333 209.621333 0 0 0 129.024-125.226667c23.722667-63.573333 14.72-139.136-25.216-193.706666-29.866667-42.965333-76.928-73.258667-128.085333-84.010667-16.213333-2.901333-32.597333-4.181333-48.981333-5.717333-26.069333-52.522667-35.584-113.493333-22.528-170.496l-0.853334-0.469334z"
+                            p-id="4644" fill="#e6e6e6"></path>
+                    </svg>
+                </LiveMaskButton>
             </div>
             <div v-show="status === 'started'" class="video-container">
                 <video ref="videoElement" src="" class="video" controls autoplay muted></video>
             </div>
+            <LiveDanmu></LiveDanmu>
         </div>
 
         <LiveUploaderFooter :status="status" :stopStream="stopStream" />
@@ -260,6 +296,14 @@ export default {
                 <a-descriptions-item label="点赞人数" :span="2">{{ liveLikeCount }}</a-descriptions-item>
                 <a-descriptions-item label="开始时间" :span="2">{{ liveStartTime }}</a-descriptions-item>
                 <a-descriptions-item label="持续时长" :span="2">{{ liveProceedTime }}</a-descriptions-item>
+            </a-descriptions>
+        </a-modal>
+
+        <a-modal v-model:open="obsModalVisible" centered @ok="handleOBSSream">
+            <a-descriptions title="推流设置" bordered>
+                <a-descriptions-item label="OBS推流地址" :span="3">
+                    {{ `rtmp://localhost/live/${room}` }}
+                </a-descriptions-item>
             </a-descriptions>
         </a-modal>
     </div>

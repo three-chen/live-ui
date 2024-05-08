@@ -88,6 +88,7 @@ export default {
 
         const updateIfCreated = async (liveInfo: Partial<LiveInfo>, message: string) => {
             if (isCreated.value) {
+                console.log("update cover_pic_url", live?.value?.liveId, liveInfo)
                 const res = await postLiveInfo(live?.value?.liveId!, liveInfo)
                 if (res.success && res.data) {
                     notification.success({

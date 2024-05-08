@@ -1,7 +1,9 @@
 <script lang="ts">
-import type { MenuProps } from 'ant-design-vue';
-import { UserInfoR } from 'live-service';
-import { PropType } from 'vue';
+import { useUserStore } from '@/stores/user';
+import { notification, type MenuProps } from 'ant-design-vue';
+import { UserInfoR, addFollow } from 'live-service';
+import { PropType, computed } from 'vue';
+import { useRouter } from 'vue-router';
 
 export default {
     name: 'LiveChatMessage',
@@ -13,12 +15,29 @@ export default {
             type: String,
         },
     },
-    setup() {
-        const onClick: MenuProps['onClick'] = ({ key }) => {
+    setup(props) {
+        const meStore = useUserStore();
+        const me = computed(() => meStore.user);
+        const router = useRouter();
+
+        const onClick: MenuProps['onClick'] = async ({ key }) => {
             switch (key) {
                 case '1':
+                    const res = await addFollow({ userId: props.user?.id!, followerId: me.value?.id! })
+                    if (res.success && res.data) {
+                        notification.success({
+                            message: '关注成功',
+                            description: `你关注了${props.user?.name}`,
+                        });
+                    }
                     break;
                 case '2':
+                    router.push({
+                        path: '/space',
+                        query: {
+                            id: props.user?.id
+                        }
+                    })
                     break;
                 case '3':
                     break;
@@ -43,8 +62,8 @@ export default {
             <template #overlay>
                 <a-menu @click="onClick">
                     <a-menu-item key="1">关注</a-menu-item>
-                    <a-menu-item key="2">访问空间</a-menu-item>
-                    <a-menu-item key="3">踢出直播间</a-menu-item>
+                    <!-- <a-menu-item key="2">访问空间</a-menu-item> -->
+                    <!-- <a-menu-item key="3">踢出直播间</a-menu-item> -->
                 </a-menu>
             </template>
         </a-dropdown>

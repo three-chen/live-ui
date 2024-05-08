@@ -57,7 +57,7 @@ import SinglePicUpload from '@/components/upload/SinglePicUpload.vue';
 import { useUserStore } from '@/stores/user';
 import { fileToBlob } from '@/utils';
 import { MenuProps, UploadFile, notification } from 'ant-design-vue';
-import { postUserInfo, uploadImgToServer } from 'live-service';
+import { getAllLikeCount, getFollowCount, getFollowerCount, postUserInfo, uploadImgToServer } from 'live-service';
 import { ref } from 'vue';
 
 export default {
@@ -69,10 +69,9 @@ export default {
         const userStore = useUserStore();
         const userInfo = userStore.user;
 
-        const fanCounts = ref(0);
-        const followCounts = ref(0);
-        const goodCounts = ref(0);
-
+        const fanCounts = ref<string>('0');
+        const followCounts = ref<string>('0');
+        const goodCounts = ref<string>('0')
         const selectedKeys = ref<string[]>(['1']);
 
         const handleClick: MenuProps['onClick'] = e => {
@@ -125,6 +124,24 @@ export default {
                 file.onError()
             }
         }
+
+        const init = async () => {
+            const resFan = await getFollowerCount(userInfo?.id!)
+            if (resFan.success && resFan.data) {
+                fanCounts.value = resFan.data.followerCount
+            }
+
+            const resFollow = await getFollowCount(userInfo?.id!)
+            if (resFollow.success && resFollow.data) {
+                followCounts.value = resFollow.data.followCount
+            }
+
+            const resGood = await getAllLikeCount(userInfo?.id!)
+            if (resGood.success && resGood.data) {
+                goodCounts.value = resGood.data.likeCount
+            }
+        }
+        init()
 
         return {
             userInfo,
