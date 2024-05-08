@@ -29,7 +29,7 @@
                         </div>
                         <div>
                             <div class="num_number">{{ goodCounts }}</div>
-                            <span class="num_text">获赞</span>
+                            <span class="num_text">收到礼物</span>
                         </div>
                     </div>
                 </div>

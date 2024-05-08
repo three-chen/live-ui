@@ -3,6 +3,7 @@ import { Chat, RichText } from '@/modules';
 import { useBulletsStore } from '@/stores/bulletScreen';
 import { useChatsStore } from '@/stores/chat';
 import { useLiveStore } from '@/stores/live';
+import { useSvgaStore } from '@/stores/svga';
 import { useUserStore } from '@/stores/user';
 import { UserInfoR } from 'live-service';
 import { Decoder } from 'media-framework';
@@ -27,6 +28,7 @@ export default {
         const chats = computed(() => chatsStore.chats);
         const bulletsStore = useBulletsStore()
         const liveStore = useLiveStore();
+        const svgaStore = useSvgaStore();
 
         const chatBox = ref<HTMLElement | null>(null);
         const richTextBox = ref<HTMLElement | null>(null);
@@ -50,6 +52,12 @@ export default {
             })
         }
 
+        const onReceiveGift = (message: string) => {
+            svgaStore.sendGift(message)
+            svgaStore.setIsGifted(true)
+            console.log("receive gift", message)
+        }
+
         const onStopLive = async () => {
             console.log("stop live");
             await Decoder.destroy()
@@ -59,7 +67,7 @@ export default {
         onMounted(() => {
             richText.mount(richTextBox.value!);
             console.log('chat mounted', props.room, user);
-            Chat.init(props.room!, onReceiveMessage, onStopLive, user.value?.id);
+            Chat.init(props.room!, onReceiveMessage, onReceiveGift, onStopLive, user.value?.id);
             Chat.connect();
         })
 

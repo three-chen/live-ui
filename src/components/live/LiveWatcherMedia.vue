@@ -1,9 +1,12 @@
 <script lang="ts">
-import { addLikeCount, addViewCount, askDecodeProtocol, getLiveByRoomId } from 'live-service';
+import { LiveInfoR, addLikeCount, addViewCount, askDecodeProtocol, getLiveByRoomId } from 'live-service';
 import { DecodeProtocol, DecodeProtocolEnum, Decoder } from 'media-framework';
 import { computed, onUnmounted, ref, watch } from 'vue';
 
 import LiveDanmu from './live-danmu/LiveDanmu.vue';
+import LiveGiftSend from './live-svga/LiveGiftSend.vue';
+import LiveGiftShow from './live-svga/LiveGiftShow.vue';
+import LiveWatcherFooter from './live-watcher/LiveWatcherFooter.vue';
 import LiveWatcherHeader from './live-watcher/LiveWatcherHeader.vue';
 
 import { Chat } from '@/modules';
@@ -19,7 +22,10 @@ enum StreamStatus {
 export default {
     components: {
         LiveWatcherHeader,
-        LiveDanmu
+        LiveDanmu,
+        LiveWatcherFooter,
+        LiveGiftShow,
+        LiveGiftSend
     },
     props: {
         room: {
@@ -31,11 +37,13 @@ export default {
         const user = computed(() => userStore.user)
         const liveStore = useLiveStore()
         const live = computed(() => liveStore.live)
+        const isEnded = computed(() => liveStore.isEnded)
         const liveViewCount = computed(() => live.value?.view_count)
         const liveLikeCount = computed(() => live.value?.like_count)
 
         const supportDecodeProtocol = ref<DecodeProtocol[]>([])
 
+        const decodeMode = ref<DecodeProtocol | "SYSTEM">('SYSTEM')
         const decodeProtocol = ref<DecodeProtocol>(DecodeProtocolEnum.WEBRTC)
         const videoElement = ref<HTMLVideoElement | undefined>(undefined)
         const status = ref<StreamStatus>(StreamStatus.PREPARING)
@@ -82,7 +90,7 @@ export default {
         const ready = ref<boolean>(false)
 
         watch(
-            () => [props.room, videoElement.value, supportDecodeProtocol.value, live.value?.isEnded],
+            () => [props.room, videoElement.value, supportDecodeProtocol.value, isEnded.value],
             ([newRoom, newVideoElement, newSupportDecodeProtocol, newIsEnded]) => {
                 newSupportDecodeProtocol = newSupportDecodeProtocol as DecodeProtocol[]
                 if (newRoom && newVideoElement && newSupportDecodeProtocol?.length && !newIsEnded) {
@@ -119,26 +127,31 @@ export default {
         }
         const initDecode = async () => {
             console.log("initDecode")
-            const res = await askDecodeProtocol(
-                {
-                    id: live.value?.liveId!,
-                    supportProtocols: supportDecodeProtocol.value
-                }
-            )
-            console.log("askDecodeProtocol", res)
-            if (res.success && res.data) {
-                decodeProtocol.value = res.data
+            if (decodeMode.value === "SYSTEM") {
+                const res = await askDecodeProtocol(
+                    {
+                        id: live.value?.liveId!,
+                        supportProtocols: supportDecodeProtocol.value
+                    }
+                )
+                console.log("askDecodeProtocol", res)
+                if (res.success && res.data) {
+                    decodeProtocol.value = res.data
 
-                Decoder.init({
-                    room: props.room!,
-                    protocol: decodeProtocol.value,
-                    videoElement: videoElement.value,
-                })
+                }
+            } else {
+                decodeProtocol.value = decodeMode.value
             }
+            Decoder.init({
+                room: props.room!,
+                protocol: decodeProtocol.value,
+                videoElement: videoElement.value,
+            })
         }
 
-        const onStartLive = async () => {
+        const onStartLive = async (live: LiveInfoR) => {
             console.log("livewatcher onStartLive")
+            liveStore.setEnded(false)
             await init()
             await initDecodeAndPlay()
         }
@@ -148,13 +161,18 @@ export default {
             await Decoder.destroy()
         })
 
+        const selectDecodeProtocol = async (protocol: DecodeProtocol | "SYSTEM") => {
+            decodeMode.value = protocol
+            await Decoder.destroy()
+            await initDecodeAndPlay()
+        }
 
         return {
             status,
-            ready,
             videoElement,
             liveViewCount,
-            liveLikeCount
+            liveLikeCount,
+            selectDecodeProtocol
         }
     }
 }
@@ -173,9 +191,11 @@ export default {
                 <video ref="videoElement" src="" class="video" controls autoplay muted></video>
             </div>
             <LiveDanmu></LiveDanmu>
+            <LiveGiftShow v-show="status === 'started'"></LiveGiftShow>
+            <LiveGiftSend v-show="status === 'started'"></LiveGiftSend>
         </div>
 
-        <!-- <LiveUploaderFooter :status="status" :stopStream="stopStream" /> -->
+        <LiveWatcherFooter :selectDecodeProtocol="selectDecodeProtocol" />
     </div>
 </template>
 

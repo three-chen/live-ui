@@ -2,8 +2,8 @@
 import { useLiveStore } from '@/stores/live';
 import { useUserStore } from '@/stores/user';
 import { notification } from 'ant-design-vue';
-import { UserInfoR, addFollow, canselFollow, getUserInfo, isFollowed } from 'live-service';
-import { computed, ref, watch } from 'vue';
+import { UserInfoR, addFollow, canselFollow, getLikeCount, getUserInfo, getViewCount, isFollowed } from 'live-service';
+import { computed, onUnmounted, ref, watch } from 'vue';
 
 export default {
     name: 'LiveWatcherHeader',
@@ -22,6 +22,7 @@ export default {
         // liveInfo
         const liveStore = useLiveStore();
         const live = computed(() => liveStore.live);
+        const liveId = computed(() => live.value?.liveId)
         const liveTitle = computed(() => live.value?.liveTitle);
         const liveType = computed(() => titles.value[Number(live.value?.typeId) ?? 0]);
         const cover_pic_url = computed(() => live.value?.cover_picture_url);
@@ -32,6 +33,25 @@ export default {
         const userInfo = computed(() => userStore.user);
         // followInfo
         const followd = ref<boolean>(true)
+
+        const likeCountGetInterval = setInterval(async () => {
+            const res = await getLikeCount(liveId.value!)
+            if (res.success && res.data) {
+                liveStore.setLive({ like_count: res.data.likeCount })
+            }
+        }, 5000)
+
+        const viewCountGetInterval = setInterval(async () => {
+            const res = await getViewCount(liveId.value!)
+            if (res.success && res.data) {
+                liveStore.setLive({ view_count: res.data.viewCount })
+            }
+        }, 5000)
+
+        onUnmounted(() => {
+            clearInterval(likeCountGetInterval)
+            clearInterval(viewCountGetInterval)
+        })
 
         watch(
             () => live.value?.uploaderId,
@@ -122,11 +142,11 @@ export default {
                         {{ viewCount }}
                     </div>
                     <div class="live-watcher-uploaderinfo-likecount">
-                        <svg t="1715093651015" class="icon" viewBox="0 0 1024 1024" version="1.1"
-                            xmlns="http://www.w3.org/2000/svg" p-id="4289" width="20" height="20">
+                        <svg t="1715175814973" class="icon" viewBox="0 0 1024 1024" version="1.1"
+                            xmlns="http://www.w3.org/2000/svg" p-id="2856" width="20" height="20">
                             <path
-                                d="M857.28 344.992h-264.832c12.576-44.256 18.944-83.584 18.944-118.208 0-78.56-71.808-153.792-140.544-143.808-60.608 8.8-89.536 59.904-89.536 125.536v59.296c0 76.064-58.208 140.928-132.224 148.064l-117.728-0.192A67.36 67.36 0 0 0 64 483.04V872c0 37.216 30.144 67.36 67.36 67.36h652.192a102.72 102.72 0 0 0 100.928-83.584l73.728-388.96a102.72 102.72 0 0 0-100.928-121.824zM128 872V483.04c0-1.856 1.504-3.36 3.36-3.36H208v395.68H131.36A3.36 3.36 0 0 1 128 872z m767.328-417.088l-73.728 388.96a38.72 38.72 0 0 1-38.048 31.488H272V476.864a213.312 213.312 0 0 0 173.312-209.088V208.512c0-37.568 12.064-58.912 34.72-62.176 27.04-3.936 67.36 38.336 67.36 80.48 0 37.312-9.504 84-28.864 139.712a32 32 0 0 0 30.24 42.496h308.512a38.72 38.72 0 0 1 38.048 45.888z"
-                                p-id="4290" fill="#8a8a8a"></path>
+                                d="M474.18097 127.290893l-134.35708 0q-13.933327 0-21.397609-6.469045t-10.449995-16.421421-2.985713-22.392847 1.990475-23.388084q0.995238-10.947614 3.980951-23.885703t8.45952-21.895228 14.430946-11.942852 21.895228 4.976188q14.928564 8.957139 33.83808 19.407134t36.823792 20.89999 33.340461 18.909515 23.388084 13.435708q9.952376 6.966663 14.928564 15.426183t3.980951 15.923802-7.961901 12.44047-19.904753 4.976188zM551.809505 126.295656l133.361843 0q13.933327 0 21.397609-6.469045t10.449995-16.421421 2.985713-22.392847-0.995238-23.388084q-1.990475-10.947614-4.478569-23.388084t-7.961901-21.397609-14.430946-11.942852-21.895228 3.980951q-14.928564 8.957139-33.83808 19.407134t-37.321411 20.89999-33.83808 18.909515-22.392847 13.435708q-10.947614 6.966663-15.923802 15.426183t-3.980951 15.923802 7.961901 12.44047 20.89999 4.976188zM460.247643 191.981339l-288.618913 0q-31.847604 0-41.302362 10.449995t-9.454758 33.340461l0 87.580912q0 24.880941 10.449995 36.823792t41.302362 11.942852l287.623676 0 0-180.138011zM568.728545 191.981339l284.637963 0q31.847604 0 43.292837 12.44047t11.445233 35.330936l0 85.590436q0 23.885703-10.449995 35.330936t-41.302362 11.445233l-287.623676 0 0-180.138011zM460.247643 424.866945l-305.537953 0 0 163.218972 0 64.690446 0 60.709496 0 51.752357 0 35.828555q0 50.757119 28.861891 78.623773t89.571387 27.866654l187.104675 0 0-482.690252zM568.728545 424.866945l304.542716 0 0 373.214112q-0.995238 50.757119-28.861891 80.116629t-88.576149 29.35951l-187.104675 0 0-482.690252z"
+                                p-id="2857" fill="#8a8a8a"></path>
                         </svg>
                         {{ likeCount }}
                     </div>

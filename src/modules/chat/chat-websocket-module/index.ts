@@ -6,12 +6,20 @@ import type { RoomSocketEvent } from './hWebSocket/types'
 import { LiveInfoR, UserInfoR } from 'live-service'
 import { g4, getObjectValues } from './utils'
 
+const giftTranslate = {
+  Rocket: '火箭',
+  angel: '天使',
+  heartbeat: '心动',
+  TwitterHeart: '爱心'
+}
+
 export class LiveChat extends EventEmitter {
   // 本地的socket
   private socket: HWebSocket | null = null
   private userId: string
   private roomId: string
   private onMessage: Function
+  private onGift: Function
   private onStopLive: Function
   private onStartLive: Function | undefined
 
@@ -19,19 +27,21 @@ export class LiveChat extends EventEmitter {
     this.onStartLive = onStartLive
   }
 
-  public constructor(roomId: string, onMessage: Function, onStopLive: Function, userId?: string) {
+  public constructor(roomId: string, onMessage: Function, onGift: Function, onStopLive: Function, userId?: string) {
     super()
     // 将EventEmiiter调用的this指定为LiveChat的this
     this.LiveChatenv = this
     this.roomId = roomId
     this.userId = userId || `anony-${g4()}${g4()}-${g4()}${g4()}`
     this.onMessage = onMessage
+    this.onGift = onGift
     this.onStopLive = onStopLive
     this.init()
   }
 
   public init() {
     this.on('_message', this.handleMessage)
+    this.on('_gift', this.handleGift)
     this.on('_joined', this.handleJoined)
     this.on('_new_user', this.handleNewUser)
     this.on('_remove_user', this.handleRemoveUser)
@@ -107,16 +117,45 @@ export class LiveChat extends EventEmitter {
       }
     }
 
-    try {
+    // 如果socket断开，则重新连接
+    if (that.socket!.ws.readyState === 3) {
+      that.reconnect('ws://localhost:3000')
+      setTimeout(() => {
+        that.socket!.ws.send(JSON.stringify(roomSocketEvent))
+      }, 500)
+    } else {
       that.socket!.ws.send(JSON.stringify(roomSocketEvent))
-    } catch (error) {
-      console.log('send message error', error)
-      throw error
+    }
+  }
+
+  public sendGift(message: string) {
+    const that = this
+    // @ts-ignore
+    that.sendMessage(`送出了${giftTranslate[message]}`)
+    const roomSocketEvent: RoomSocketEvent = {
+      eventName: '__gift',
+      data: {
+        message: message
+      }
+    }
+
+    // 如果socket断开，则重新连接
+    if (that.socket!.ws.readyState === 3) {
+      that.reconnect('ws://localhost:3000')
+      setTimeout(() => {
+        that.socket!.ws.send(JSON.stringify(roomSocketEvent))
+      }, 500)
+    } else {
+      that.socket!.ws.send(JSON.stringify(roomSocketEvent))
     }
   }
 
   public handleMessage(user: UserInfoR, message: string) {
     this.onMessage(user, message)
+  }
+
+  public handleGift(message: string) {
+    this.onGift(message)
   }
 
   public handleStartLive(live: LiveInfoR) {

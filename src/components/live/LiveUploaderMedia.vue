@@ -1,10 +1,12 @@
 <script lang="ts">
 import { LiveInfoR, askDecodeProtocol, askEncodeProtocol, createLive, stopLive } from 'live-service';
 import { DecodeProtocol, DecodeProtocolEnum, Decoder, EncodeProtocol, EncodeProtocolEnum, Encoder } from 'media-framework';
-import { computed, onUnmounted, ref, watch } from 'vue';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
 
 import LiveMaskButton from '@/components/button/LiveMaskButton.vue';
 import LiveDanmu from './live-danmu/LiveDanmu.vue';
+import LiveGiftSend from './live-svga/LiveGiftSend.vue';
+import LiveGiftShow from './live-svga/LiveGiftShow.vue';
 import LiveUploaderFooter from './live-uploader/LiveUploaderFooter.vue';
 import LiveUploaderHeader from './live-uploader/LiveUploaderHeader.vue';
 
@@ -27,7 +29,9 @@ export default {
         LiveUploaderHeader,
         LiveMaskButton,
         LiveUploaderFooter,
-        LiveDanmu
+        LiveDanmu,
+        LiveGiftShow,
+        LiveGiftSend
     },
     props: {
         room: {
@@ -61,10 +65,9 @@ export default {
             return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
         })
 
+        const encodeMode = ref<EncodeProtocol | 'SYSTEM'>('SYSTEM')
         const supportEncodeProtocol = ref<EncodeProtocol[]>([])
         const supportDecodeProtocol = ref<DecodeProtocol[]>([])
-
-        // const url = ref<string>('http://localhost:8080/live/livestream.m3u8')
         const encodeProtocol = ref<EncodeProtocol>(EncodeProtocolEnum.WEBRTC)
         const decodeProtocol = ref<DecodeProtocol>(DecodeProtocolEnum.WEBRTC)
         const videoElement = ref<HTMLVideoElement | undefined>(undefined)
@@ -85,25 +88,9 @@ export default {
         }
         init()
 
-        const ready = computed(() => {
-            if (props.room && videoElement.value) {
-                changeStatus(StreamStatus.READY)
-                console.log("ready true")
-                return true
-            }
-            console.log("ready false")
-            return false
+        onMounted(() => {
+            changeStatus(StreamStatus.READY)
         })
-
-        watch(
-            () => ready.value,
-            async (newVal) => {
-                console.log("newVal", newVal)
-                if (newVal) {
-                    await initEncode()
-                }
-            }
-        )
 
         const uploaderCreateLive = async () => {
             const res = await createLive(
@@ -123,26 +110,29 @@ export default {
         }
 
         const captureScreen = async () => {
+            await initEncode()
             await uploaderCreateLive()
             await Encoder.encoder?.desktopStreamSpawn()
             changeStatus(StreamStatus.STARTED)
-            // await initDecodeAndPlay()
         }
 
         const openCamera = async () => {
+            await initEncode()
             await uploaderCreateLive()
             await Encoder.encoder?.cameraStreamSpawn()
             changeStatus(StreamStatus.STARTED)
-            // await initDecodeAndPlay()
         }
 
         const handleOBSSream = async () => {
-            Encoder.changeEncoderWithoutDestroy({ protocol: EncodeProtocolEnum.RTMP })
             encodeProtocol.value = EncodeProtocolEnum.RTMP
+            Encoder.init({
+                room: props.room!,
+                protocol: encodeProtocol.value,
+            })
+            Encoder.changeEncoderWithoutDestroy({ protocol: EncodeProtocolEnum.RTMP })
             await uploaderCreateLive()
             changeStatus(StreamStatus.STARTED)
             obsModalVisible.value = false
-            // await initDecodeAndPlay()
         }
 
         const showObsModal = () => {
@@ -157,7 +147,7 @@ export default {
             if (status.value === StreamStatus.STARTED) {
                 await Encoder.destroy()
                 await processStopLive()
-                if (ready.value === true) changeStatus(StreamStatus.READY)
+                changeStatus(StreamStatus.READY)
             }
         }
 
@@ -172,37 +162,41 @@ export default {
         }
 
         onUnmounted(async () => {
+            console.log("onUnmounted liveUploaderMedia")
             await stopStream()
             await Decoder.destroy()
         })
 
         const initEncode = async () => {
-            const res = await askEncodeProtocol(
-                {
-                    id: user.value?.id!,
-                    supportProtocols: supportEncodeProtocol.value
+            if (encodeMode.value === 'SYSTEM') {
+                const res = await askEncodeProtocol(
+                    {
+                        id: user.value?.id!,
+                        supportProtocols: supportEncodeProtocol.value
+                    }
+                )
+                if (res.success && res.data) {
+                    encodeProtocol.value = res.data
                 }
-            )
-            if (res.success && res.data) {
-                encodeProtocol.value = res.data
-
-                Encoder.init({
-                    room: props.room!,
-                    protocol: encodeProtocol.value,
-                })
+            } else {
+                encodeProtocol.value = encodeMode.value
             }
+            Encoder.init({
+                room: props.room!,
+                protocol: encodeProtocol.value,
+            })
         }
 
         const initDecodeAndPlay = async () => {
             await initDecode()
             if (decodeProtocol.value === DecodeProtocolEnum.HLS) {
                 setTimeout(() => {
-                    console.log("loadAndPlay")
                     Decoder.decoder?.loadAndPlay()
                 }, 10000)
             } else {
                 Decoder.decoder?.loadAndPlay()
             }
+            console.log("initDecodeAndPlay")
         }
         const initDecode = async () => {
             const res = await askDecodeProtocol(
@@ -229,9 +223,13 @@ export default {
         }
         Chat.setOnStartLive(onStartLive)
 
+        const onSelectEncodeProtocol = async (protocol: EncodeProtocol | 'SYSTEM') => {
+            encodeMode.value = protocol
+            console.log("onselectEncodeProtocol", protocol)
+        }
+
         return {
             status,
-            ready,
             videoElement,
             captureScreen,
             openCamera,
@@ -244,6 +242,7 @@ export default {
             liveLikeCount,
             liveStartTime,
             liveProceedTime,
+            onSelectEncodeProtocol
         }
     }
 }
@@ -285,15 +284,17 @@ export default {
                 <video ref="videoElement" src="" class="video" controls autoplay muted></video>
             </div>
             <LiveDanmu></LiveDanmu>
+            <LiveGiftShow></LiveGiftShow>
         </div>
 
-        <LiveUploaderFooter :status="status" :stopStream="stopStream" />
+        <LiveUploaderFooter :status="status" :stopStream="stopStream"
+            :select-encode-protocol="onSelectEncodeProtocol" />
 
 
         <a-modal v-model:open="modalVisible" centered @ok="modalVisible = false">
             <a-descriptions title="直播数据" bordered>
                 <a-descriptions-item label="观看人数" :span="2">{{ liveViewCount }}</a-descriptions-item>
-                <a-descriptions-item label="点赞人数" :span="2">{{ liveLikeCount }}</a-descriptions-item>
+                <a-descriptions-item label="收到礼物" :span="2">{{ liveLikeCount }}</a-descriptions-item>
                 <a-descriptions-item label="开始时间" :span="2">{{ liveStartTime }}</a-descriptions-item>
                 <a-descriptions-item label="持续时长" :span="2">{{ liveProceedTime }}</a-descriptions-item>
             </a-descriptions>

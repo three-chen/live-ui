@@ -7,10 +7,10 @@ export class Chat {
   public static liveChat: LiveChat
   public static onStartLive: Function
 
-  public static init(room: string, onMessage: Function, onStopLive: Function, userId?: string) {
+  public static init(room: string, onMessage: Function, onGift: Function, onStopLive: Function, userId?: string) {
     Chat.room = room
     Chat.url = `ws://localhost:3000`
-    Chat.liveChat = new LiveChat(Chat.room, onMessage, onStopLive, userId)
+    Chat.liveChat = new LiveChat(Chat.room, onMessage, onGift, onStopLive, userId)
     if (Chat.onStartLive) {
       Chat.liveChat.setOnStartLive(Chat.onStartLive)
     }
@@ -23,6 +23,14 @@ export class Chat {
   public static sendMessage(msg: string) {
     try {
       Chat.liveChat.sendMessage(msg)
+    } catch (error) {
+      console.log('sendMessage error', error)
+    }
+  }
+
+  public static sendGift(msg: string) {
+    try {
+      Chat.liveChat.sendGift(msg)
     } catch (error) {
       console.log('sendMessage error', error)
     }
